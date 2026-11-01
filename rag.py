@@ -47,6 +47,20 @@ SOURCE_CONFIG = {
             "treat workflow details as historical until verified."
         ),
     },
+    "PM_SVANidhi_Scheme_Guidelines_2025.pdf": {
+        "pages": None,
+        "date_note": (
+            "Official PM SVANidhi Scheme Guidelines, dated 16 September 2025; "
+            "verify current eligibility and loan details on pmsvanidhi.mohua.gov.in."
+        ),
+    },
+    "PM_SVANidhi_Loan_Operational_Guidelines_2025.pdf": {
+        "pages": None,
+        "date_note": (
+            "Official PM SVANidhi Loan Operational Guidelines, dated 16 September 2025; "
+            "verify current operational procedures on pmsvanidhi.mohua.gov.in."
+        ),
+    },
 }
 EXCLUDED_FILES = {"Udyam_Application_Form.pdf"}
 
