@@ -340,7 +340,107 @@ def init_auth_db():
                 updated_at    TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS chat_sessions (
+                id         INTEGER PRIMARY KEY,
+                email      TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chat_sessions_email ON chat_sessions(email)"
+        )
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id         INTEGER PRIMARY KEY,
+                session_id INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+                role       TEXT NOT NULL,
+                content    TEXT NOT NULL,
+                source     TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         conn.commit()
+
+
+def create_chat_session(email: str) -> int:
+    """Insert a new chat_sessions row and return its integer id."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        cur = conn.execute(
+            "INSERT INTO chat_sessions(email) VALUES (?)", (email,)
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def append_chat_messages(
+    session_id: int,
+    user_content: str,
+    assistant_content: str,
+    source: str,
+) -> None:
+    """Persist a user+assistant exchange in a single transaction."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        conn.execute(
+            "INSERT INTO chat_messages(session_id, role, content, source) VALUES (?,?,?,?)",
+            (session_id, "user", user_content, ""),
+        )
+        conn.execute(
+            "INSERT INTO chat_messages(session_id, role, content, source) VALUES (?,?,?,?)",
+            (session_id, "assistant", assistant_content, source),
+        )
+        conn.commit()
+
+
+def load_chat_session_messages(session_id: int) -> list:
+    """Return all messages for a session in chronological order."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        rows = conn.execute(
+            "SELECT role, content, source FROM chat_messages WHERE session_id=? ORDER BY id ASC",
+            (session_id,),
+        ).fetchall()
+    return [{"role": r[0], "content": r[1], "source": r[2]} for r in rows]
+
+
+def load_latest_chat_session(email: str):
+    """Return (session_id, messages) for the user's newest session, or None."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        row = conn.execute(
+            "SELECT id FROM chat_sessions WHERE email=? ORDER BY id DESC LIMIT 1",
+            (email,),
+        ).fetchone()
+    if not row:
+        return None
+    session_id = row[0]
+    return session_id, load_chat_session_messages(session_id)
+
+
+def load_recent_chat_sessions(email: str, limit: int = 5) -> list:
+    """Return up to `limit` recent sessions with id, created_at, first_question."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        rows = conn.execute(
+            """
+            SELECT cs.id, cs.created_at,
+                   (SELECT cm.content FROM chat_messages cm
+                    WHERE cm.session_id = cs.id AND cm.role = 'user'
+                    ORDER BY cm.id ASC LIMIT 1) AS first_question
+            FROM chat_sessions cs
+            WHERE cs.email = ?
+            ORDER BY cs.id DESC
+            LIMIT ?
+            """,
+            (email, limit),
+        ).fetchall()
+    return [{"id": r[0], "created_at": r[1], "first_question": r[2]} for r in rows]
+
+
+def get_chat_session_owner(session_id: int):
+    """Return the email that owns the session, or None if not found."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        row = conn.execute(
+            "SELECT email FROM chat_sessions WHERE id=?", (session_id,)
+        ).fetchone()
+    return row[0] if row else None
 
 
 def load_business_profile(email: str) -> dict:
@@ -681,6 +781,8 @@ with st.sidebar:
         st.session_state.pop("profile_result", None)
         st.session_state.pop("promo_result", None)
         st.session_state.pop("checklist_result", None)
+        st.session_state.pop("copilot_messages", None)
+        st.session_state.pop("_copilot_session_id", None)
         st.rerun()
 
 vendor = st.session_state.get("vendor", {})
@@ -988,8 +1090,16 @@ elif page == "AI Copilot":
     </div>
     """, unsafe_allow_html=True)
 
+    _copilot_email = st.session_state["account"]["email"]
     if "copilot_messages" not in st.session_state:
-        st.session_state["copilot_messages"] = []
+        # Guard runs exactly once per Streamlit session initialisation.
+        # Normal reruns skip this block because the key already exists.
+        _latest = load_latest_chat_session(_copilot_email)
+        if _latest:
+            st.session_state["_copilot_session_id"], st.session_state["copilot_messages"] = _latest
+        else:
+            st.session_state["_copilot_session_id"] = create_chat_session(_copilot_email)
+            st.session_state["copilot_messages"] = []
 
     chat_col, history_col = st.columns([2.15, .85], gap="medium")
     with chat_col:
@@ -1041,21 +1151,46 @@ elif page == "AI Copilot":
                         )
                     ) or "I couldn't generate an answer. Please check the IBM watsonx.ai connection and try again."
             st.session_state["copilot_messages"].append({"role":"assistant","content":answer,"source":source_note})
+            append_chat_messages(
+                st.session_state["_copilot_session_id"],
+                question,
+                answer,
+                source_note,
+            )
             st.rerun()
 
     with history_col:
         with st.container(border=True):
-            st.markdown('<div class="card-heading"><span>Chat history</span><span class="card-chip">SESSION</span></div>', unsafe_allow_html=True)
-            st.caption(f"{len(st.session_state['copilot_messages']) // 2} exchanges in this session")
+            st.markdown('<div class="card-heading"><span>Chat history</span><span class="card-chip">SAVED</span></div>', unsafe_allow_html=True)
+            st.caption(f"{len(st.session_state['copilot_messages']) // 2} exchanges · saved")
             if st.button("＋ New chat", use_container_width=True):
+                _new_sid = create_chat_session(_copilot_email)
+                st.session_state["_copilot_session_id"] = _new_sid
                 st.session_state["copilot_messages"] = []
                 st.rerun()
-            if st.session_state["copilot_messages"]:
-                for idx, message in enumerate(st.session_state["copilot_messages"]):
-                    if message["role"] == "user":
-                        st.markdown(f'<div class="step"><div class="step-icon">◉</div><div><div class="step-title">{escape(message["content"][:58])}</div><div class="step-caption">This session</div></div></div>', unsafe_allow_html=True)
+            _recent_sessions = load_recent_chat_sessions(_copilot_email, limit=5)
+            if _recent_sessions:
+                for _sess in _recent_sessions:
+                    _is_active = (_sess["id"] == st.session_state.get("_copilot_session_id"))
+                    _icon = "◉" if _is_active else "○"
+                    _fq = _sess["first_question"]
+                    _title = escape(_fq[:55]) if _fq else "New conversation"
+                    _date = (_sess["created_at"] or "")[:10]
+                    st.markdown(
+                        f'<div class="step"><div class="step-icon">{_icon}</div>'
+                        f'<div><div class="step-title">{_title}</div>'
+                        f'<div class="step-caption">{escape(_date)}</div></div></div>',
+                        unsafe_allow_html=True,
+                    )
+                    if not _is_active:
+                        if st.button("Load", key=f"load_session_{_sess['id']}", use_container_width=True):
+                            _owner = get_chat_session_owner(_sess["id"])
+                            if _owner == _copilot_email:
+                                st.session_state["_copilot_session_id"] = _sess["id"]
+                                st.session_state["copilot_messages"] = load_chat_session_messages(_sess["id"])
+                                st.rerun()
             else:
-                st.caption("Your recent questions will appear here.")
+                st.caption("No saved conversations yet.")
         with st.container(border=True):
             st.markdown("**Knowledge assistant**")
             st.caption("Responses use the local government-PDF retrieval pipeline.")
