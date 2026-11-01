@@ -360,7 +360,98 @@ def init_auth_db():
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS saved_promotions (
+                id         INTEGER PRIMARY KEY,
+                email      TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+                occasion   TEXT NOT NULL DEFAULT '',
+                platform   TEXT NOT NULL DEFAULT '',
+                tone       TEXT NOT NULL DEFAULT '',
+                content    TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_saved_promotions_email ON saved_promotions(email)"
+        )
         conn.commit()
+
+
+def save_promotion(email: str, occasion: str, platform: str, tone: str, content: str) -> int:
+    """Insert a saved promotion and return its integer id."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        cur = conn.execute(
+            "INSERT INTO saved_promotions(email, occasion, platform, tone, content) VALUES (?,?,?,?,?)",
+            (email, occasion, platform, tone, content),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+def load_saved_promotions(email: str, limit: int = 10) -> list:
+    """Return the most-recent `limit` saved promotions for a user (newest first)."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        rows = conn.execute(
+            """
+            SELECT id, occasion, platform, tone, content, created_at
+            FROM saved_promotions
+            WHERE email = ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (email, limit),
+        ).fetchall()
+    return [
+        {
+            "id": r[0],
+            "occasion": r[1],
+            "platform": r[2],
+            "tone": r[3],
+            "content": r[4],
+            "created_at": r[5],
+        }
+        for r in rows
+    ]
+
+
+def load_promotion_by_id(promo_id: int, email: str):
+    """Return the full promotion row only if it belongs to `email`, else None."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        row = conn.execute(
+            "SELECT id, occasion, platform, tone, content, created_at "
+            "FROM saved_promotions WHERE id = ? AND email = ?",
+            (promo_id, email),
+        ).fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "occasion": row[1],
+        "platform": row[2],
+        "tone": row[3],
+        "content": row[4],
+        "created_at": row[5],
+    }
+
+
+def get_promotion_owner(promo_id: int):
+    """Return the email that owns the promotion, or None if not found."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        row = conn.execute(
+            "SELECT email FROM saved_promotions WHERE id = ?", (promo_id,)
+        ).fetchone()
+    return row[0] if row else None
+
+
+def delete_promotion(promo_id: int, email: str) -> bool:
+    """Delete a promotion only if it belongs to `email`. Returns True if deleted."""
+    with sqlite3.connect(AUTH_DB) as conn:
+        cur = conn.execute(
+            "DELETE FROM saved_promotions WHERE id = ? AND email = ?",
+            (promo_id, email),
+        )
+        conn.commit()
+    return cur.rowcount > 0
 
 
 def create_chat_session(email: str) -> int:
@@ -780,6 +871,7 @@ with st.sidebar:
         st.session_state.pop("vendor", None)
         st.session_state.pop("profile_result", None)
         st.session_state.pop("promo_result", None)
+        st.session_state.pop("promo_settings", None)
         st.session_state.pop("checklist_result", None)
         st.session_state.pop("copilot_messages", None)
         st.session_state.pop("_copilot_session_id", None)
@@ -965,7 +1057,7 @@ elif page == "Promo Studio":
         with st.container(border=True):
             # st.code provides a built-in copy control and preserves line breaks.
             st.code(st.session_state["promo_result"], language=None)
-        promo_col1, promo_col2, promo_col3 = st.columns([1, 1, 1])
+        promo_col1, promo_col2, promo_col3, promo_col4 = st.columns([1, 1, 1, 1])
         with promo_col1:
             st.download_button(
                 "Download promotion", st.session_state["promo_result"],
@@ -993,6 +1085,59 @@ elif page == "Promo Studio":
                 st.session_state.pop("promo_result", None)
                 st.session_state.pop("promo_settings", None)
                 st.rerun()
+        with promo_col4:
+            _promo_content = st.session_state.get("promo_result", "")
+            _promo_settings = st.session_state.get("promo_settings", {})
+            _promo_saved_key = f"_promo_saved_{hash(_promo_content)}"
+            _already_saved = st.session_state.get(_promo_saved_key, False)
+            if _already_saved:
+                st.success("Saved!", icon="★")
+            elif st.button("★ Save to library", key="save_promo", use_container_width=True):
+                if _promo_content.strip():
+                    _promo_email = st.session_state["account"]["email"]
+                    save_promotion(
+                        _promo_email,
+                        _promo_settings.get("occasion", ""),
+                        _promo_settings.get("platform", ""),
+                        _promo_settings.get("tone", ""),
+                        _promo_content,
+                    )
+                    st.session_state[_promo_saved_key] = True
+                    st.rerun()
+
+        # Saved promotions library (collapsed by default)
+        _lib_email = st.session_state["account"]["email"]
+        _saved = load_saved_promotions(_lib_email, limit=10)
+        with st.expander(f"★ Saved promotions ({len(_saved)} saved)", expanded=False):
+            if _saved:
+                for _promo in _saved:
+                    _p_occasion = _promo["occasion"] or "No occasion"
+                    _p_date = (_promo["created_at"] or "")[:10]
+                    _p_platform = _promo["platform"] or ""
+                    st.markdown(
+                        f'<div class="step"><div class="step-icon">◎</div>'
+                        f'<div><div class="step-title">{escape(_p_occasion[:55])} · {escape(_p_platform)}</div>'
+                        f'<div class="step-caption">{escape(_p_date)}</div></div></div>',
+                        unsafe_allow_html=True,
+                    )
+                    _lib_col1, _lib_col2 = st.columns([1, 1])
+                    with _lib_col1:
+                        if st.button("Load", key=f"load_promo_{_promo['id']}", use_container_width=True):
+                            _loaded = load_promotion_by_id(_promo["id"], _lib_email)
+                            if _loaded:
+                                st.session_state["promo_result"] = _loaded["content"]
+                                st.session_state["promo_settings"] = {
+                                    "occasion": _loaded["occasion"],
+                                    "platform": _loaded["platform"],
+                                    "tone": _loaded["tone"],
+                                }
+                                st.rerun()
+                    with _lib_col2:
+                        if st.button("Delete", key=f"delete_promo_{_promo['id']}", use_container_width=True):
+                            delete_promotion(_promo["id"], _lib_email)
+                            st.rerun()
+            else:
+                st.caption("No saved promotions yet. Generate a message and click ★ Save to library.")
 
 elif page == "Digitalization Checklist":
     st.markdown('<div class="feature-card"><div class="eyebrow">YOUR NEXT STEPS</div><h3>Your step-by-step digitalization plan</h3><div class="panel-caption">Get practical next steps based on your business type and the areas you want to improve.</div></div>', unsafe_allow_html=True)
