@@ -22,7 +22,7 @@ Set:
 - `WATSONX_API_KEY`
 - `WATSONX_PROJECT_ID`
 - `WATSONX_URL` (optional; defaults to the original Dallas endpoint)
-- `WATSONX_MODEL_ID` (optional; defaults to `ibm/granite-3-3-8b-instruct`)
+- `WATSONX_MODEL_ID` (optional; defaults to `ibm/granite-4-h-small`)
 
 Do not put credentials in frontend code or commit `.env`.
 
