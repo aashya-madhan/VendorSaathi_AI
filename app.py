@@ -329,6 +329,61 @@ def init_auth_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS business_profiles (
+                email      TEXT PRIMARY KEY REFERENCES users(email) ON DELETE CASCADE,
+                business_name TEXT NOT NULL,
+                vendor_type   TEXT NOT NULL,
+                location      TEXT,
+                products      TEXT,
+                language      TEXT NOT NULL DEFAULT 'English',
+                updated_at    TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+
+def load_business_profile(email: str) -> dict:
+    with sqlite3.connect(AUTH_DB) as conn:
+        row = conn.execute(
+            "SELECT business_name, vendor_type, location, products, language "
+            "FROM business_profiles WHERE email=?",
+            (email,),
+        ).fetchone()
+    if not row:
+        return {}
+    return {
+        "business_name": row[0],
+        "vendor_type": row[1],
+        "location": row[2] or "",
+        "products": row[3] or "",
+        "language": row[4],
+    }
+
+
+def upsert_business_profile(email: str, vendor: dict) -> None:
+    with sqlite3.connect(AUTH_DB) as conn:
+        conn.execute(
+            """
+            INSERT INTO business_profiles(email, business_name, vendor_type, location, products, language, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(email) DO UPDATE SET
+                business_name = excluded.business_name,
+                vendor_type   = excluded.vendor_type,
+                location      = excluded.location,
+                products      = excluded.products,
+                language      = excluded.language,
+                updated_at    = CURRENT_TIMESTAMP
+            """,
+            (
+                email,
+                vendor.get("business_name", ""),
+                vendor.get("vendor_type", ""),
+                vendor.get("location", ""),
+                vendor.get("products", ""),
+                vendor.get("language", "English"),
+            ),
+        )
         conn.commit()
 
 def password_digest(password: str, salt: bytes) -> bytes:
@@ -495,6 +550,13 @@ if not st.session_state["authenticated"]:
         render_home()
     st.stop()
 
+# Load the authenticated user's business profile once per session (covers login rerun
+# and browser refresh while already authenticated).
+if st.session_state.get("authenticated") and "vendor" not in st.session_state:
+    _email = st.session_state.get("account", {}).get("email", "")
+    if _email:
+        st.session_state["vendor"] = load_business_profile(_email)
+
 @st.cache_resource
 def get_retriever():
     try:
@@ -616,6 +678,9 @@ with st.sidebar:
         st.session_state["account"] = {}
         st.session_state["auth_view"] = "Home"
         st.session_state.pop("vendor", None)
+        st.session_state.pop("profile_result", None)
+        st.session_state.pop("promo_result", None)
+        st.session_state.pop("checklist_result", None)
         st.rerun()
 
 vendor = st.session_state.get("vendor", {})
@@ -741,6 +806,10 @@ elif page == "Business Profile":
                     "location": edit_location.strip(), "products": edit_products.strip(),
                     "language": edit_language,
                 }
+                upsert_business_profile(
+                    st.session_state["account"]["email"],
+                    st.session_state["vendor"],
+                )
                 st.success("Business details saved. You can now generate your profile.")
                 st.rerun()
 
