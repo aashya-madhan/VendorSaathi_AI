@@ -61,6 +61,15 @@ SOURCE_CONFIG = {
             "verify current operational procedures on pmsvanidhi.mohua.gov.in."
         ),
     },
+
+    "BHIM_Official_FAQs.pdf": {
+        "pages": None,
+        "date_note": "Official BHIM FAQs; verify current guidance on the BHIM website."
+    },
+    "BHIM_UPI_Merchant_QR_Guidelines_2026.pdf": {
+        "pages": None,
+        "date_note": "NPCI merchant QR guidelines, 2026."
+    },
 }
 EXCLUDED_FILES = {"Udyam_Application_Form.pdf"}
 
@@ -347,9 +356,29 @@ def run_regression_tests(
             "seller manual should appear in top five",
         ),
         (
-            "What are current PM SVANidhi loan amounts?",
-            None,
-            "no unsupported scheme answer should be retrieved",
+            "PM SVANidhi working capital term loan 15000 25000 50000",
+            "PM_SVANidhi_Scheme_Guidelines_2025.pdf",
+            "dated official guidelines should retrieve the tranche amounts",
+        ),
+        (
+            "BHIM merchant QR code generation",
+            "BHIM_Official_FAQs.pdf",
+            "BHIM FAQ should retrieve QR generation instructions",
+        ),
+        (
+            "merchant QR code display requirements",
+            "BHIM_UPI_Merchant_QR_Guidelines_2026.pdf",
+            "merchant QR guideline should retrieve display requirements",
+        ),
+        (
+            "how to link a bank account in BHIM",
+            "BHIM_Official_FAQs.pdf",
+            "BHIM FAQ should retrieve bank account linking guidance",
+        ),
+        (
+            "how to set or reset UPI PIN in BHIM",
+            "BHIM_Official_FAQs.pdf",
+            "BHIM FAQ should retrieve PIN setup guidance",
         ),
         (
             "How do I register on TReDS?",
@@ -365,6 +394,19 @@ def run_regression_tests(
             passed = not hits
         elif query.startswith("Is Udyam"):
             passed = bool(hits) and hits[0]["source"] == expected_source
+        elif query.startswith("PM SVANidhi"):
+            passed = any(
+                hit["source"] == expected_source
+                and all(amount in hit["text"] for amount in ("₹15,000", "₹25,000", "₹50,000"))
+                for hit in hits
+            )
+        elif query.startswith("merchant QR code display"):
+            passed = any(
+                hit["source"] == expected_source
+                and "UPI ID" in hit["text"]
+                and ("Below" in hit["text"] or "Above" in hit["text"])
+                for hit in hits
+            )
         else:
             passed = any(hit["source"] == expected_source for hit in hits)
 
