@@ -41,280 +41,848 @@ C = {
 }
 css = """
 <style>
+/* ─── Fonts ─────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* ─── Design tokens ─────────────────────────────────────────────────── */
 :root {
- --bg:#07110b; --bg2:#0b1710; --panel:#101d14; --panel2:#14251a;
- --panel3:#1a3020; --line:#233b2a; --line2:#31523a;
- --text:#f1f7f0; --muted:#9aab9d; --green:#35d36b;
- --green2:#159447; --lime:#a4f35b; --input:#101d14;
- color-scheme:dark;
-}
-html,body,[class*="css"] {font-family:'DM Sans',sans-serif}
-.stApp {background:radial-gradient(ellipse at 70% -15%,rgba(33,111,54,.17),transparent 42%),var(--bg);color:var(--text)}
-[data-testid="stHeader"] {background:rgba(7,17,11,.96);height:2.8rem}
-[data-testid="stToolbar"] {right:1rem}
-.block-container {max-width:1600px;width:100%;padding:1.05rem clamp(1rem,2.1vw,2rem) 2.4rem}
-[data-testid="stSidebar"] {background:#09150d;border-right:1px solid #1c3323}
-[data-testid="stSidebar"] .block-container {padding:1.05rem .9rem 1.6rem}
-[data-testid="stSidebar"] * {color:var(--text)}
-.brand {display:flex;align-items:center;gap:10px;padding:9px 5px 22px}
-.brandmark {width:39px;height:39px;flex:0 0 39px;border-radius:12px;background:linear-gradient(145deg,#8df34f,#16a45b);display:grid;place-items:center;color:#07110b!important;font-size:21px;font-weight:900;box-shadow:0 0 22px rgba(53,211,107,.18)}
-.brandname {font-family:Manrope,sans-serif;font-size:18px;font-weight:800;letter-spacing:-.5px;color:#f4fbf4}
-.brandtag {font-size:8px;letter-spacing:1.35px;font-weight:800;color:#829989!important;margin-top:1px}
-.eyebrow {font-size:9px;letter-spacing:1.55px;text-transform:uppercase;color:var(--green)!important;font-weight:800}
-.page-title {font-family:Manrope,sans-serif;font-size:29px;font-weight:800;letter-spacing:-.9px;line-height:1.2;margin:1px 0 4px;color:var(--text)!important}
-.subtle {font-size:13px;color:var(--muted)!important;line-height:1.5}
-.topbar {display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 17px;padding:8px 0 13px;border-bottom:1px solid rgba(49,82,58,.45)}
-.topbar-left {display:flex;align-items:center;gap:10px}
-.topbar-tag {padding:7px 11px;border-radius:20px;background:#102519;border:1px solid #24442d;color:#91e6a7!important;font-size:10px;font-weight:800;letter-spacing:.5px}
-.hero {position:relative;overflow:hidden;background:linear-gradient(110deg,#102c1b 0%,#123c25 56%,#17633a 100%);border:1px solid #28623b;border-radius:17px;padding:25px 27px;margin:14px 0 16px;box-shadow:0 12px 35px rgba(0,0,0,.16)}
-.hero:after {content:"";position:absolute;width:270px;height:270px;border-radius:50%;right:-70px;top:-135px;background:radial-gradient(circle,rgba(126,255,121,.18),transparent 68%);pointer-events:none}
-.hero h2 {font-family:Manrope,sans-serif;font-size:25px;line-height:1.22;letter-spacing:-.7px;margin:8px 0;color:#f5fff5!important}
-.hero p {font-size:13px;line-height:1.6;max-width:690px;color:#c5dfcb!important;margin:0 0 11px}
-.hero-tag {font-size:9px;letter-spacing:1.6px;font-weight:900;color:var(--lime)!important}
-.metric {height:100%;min-height:105px;padding:15px 16px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(145deg,#14251a,#0d1a12);box-shadow:0 7px 20px rgba(0,0,0,.13)}
-.metric-label {font-size:10px;color:var(--muted)!important;font-weight:600}
-.metric-value {font-family:Manrope,sans-serif;font-size:26px;font-weight:800;letter-spacing:-.8px;color:#f4fbf4!important;margin:8px 0 1px}
-.metric-note {font-size:9px;line-height:1.4;color:#78dc91!important;font-weight:700}
-.panel,.feature-card {background:linear-gradient(145deg,#111f16,#0d1911);border:1px solid var(--line);border-radius:15px;padding:18px 19px;margin:10px 0 14px;box-shadow:0 8px 24px rgba(0,0,0,.12)}
-.panel h3,.feature-card h3 {font-family:Manrope,sans-serif;font-size:16px;font-weight:800;margin:0 0 6px;color:var(--text)!important}
-.panel-caption {font-size:11px;line-height:1.55;color:var(--muted)!important;margin:0 0 12px}
-.card-heading {display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
-.card-heading span {font-size:13px;font-weight:800;color:var(--text)}
-.card-chip {font-size:9px;color:#8ce7a1;background:#153321;border:1px solid #275438;border-radius:20px;padding:4px 8px}
-.step {display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid rgba(49,82,58,.5)}
-.step:last-child {border-bottom:0}
-.step-icon {height:34px;width:34px;flex:0 0 34px;border-radius:10px;background:#193524;border:1px solid #2b5036;color:#8cf0a5;display:grid;place-items:center;font-size:15px}
-.step-title {font-size:11px;font-weight:700;color:var(--text)!important;line-height:1.4}
-.step-caption {font-size:10px;color:var(--muted)!important;line-height:1.45;margin-top:2px}
-.pill {display:inline-block;border-radius:20px;padding:6px 10px;background:#143321;border:1px solid #285438;color:#8fe9a5!important;font-size:9px;font-weight:900;letter-spacing:.45px}
-.stApp h1,.stApp h2,.stApp h3,.stApp h4,.stApp h5,.stApp strong {color:var(--text)}
-.stApp p,.stApp li,.stApp label {color:var(--text)}
-.stCaption,.stCaption *,[data-testid="stCaptionContainer"] {color:var(--muted)!important}
-[data-testid="stMarkdownContainer"] {color:var(--text)}
-div.stButton>button[kind="primary"],.stDownloadButton>button {background:linear-gradient(110deg,#22a653,#39d56c);border:1px solid #3bd66e;color:#06130a!important;border-radius:9px;font-weight:800;padding:.58rem 1rem;min-height:40px;box-shadow:0 4px 14px rgba(28,190,83,.13)}
-div.stButton>button[kind="primary"]:hover,.stDownloadButton>button:hover {background:linear-gradient(110deg,#35c765,#8ae95b);border-color:#8ae95b;color:#06130a!important}
-div.stButton>button[kind="secondary"] {background:#122219;border:1px solid #2a4832;color:var(--text)!important;border-radius:9px}
-.stTextInput input,.stTextArea textarea,[data-baseweb="select"]>div {background:#0c1911!important;border:1px solid #294532!important;border-radius:9px!important;color:var(--text)!important;min-height:42px}
-.stTextArea textarea {line-height:1.55}
-input,textarea,[data-baseweb="select"] input {color:var(--text)!important}
-[data-baseweb="select"] *,[role="listbox"],[role="option"] {color:var(--text)!important}
-[data-baseweb="popover"],[data-baseweb="menu"] {background:#122219!important}
-[data-testid="stForm"],[data-testid="stExpander"] {border:1px solid var(--line)!important;border-radius:13px!important;background:#101d14!important}
-[data-testid="stVerticalBlockBorderWrapper"] {background:#101d14!important;border:1px solid var(--line)!important;border-radius:13px!important;padding:1rem 1.05rem!important}
-[data-testid="stForm"] {padding:13px!important}
-[data-testid="stExpander"] summary,[data-testid="stExpander"] details {color:var(--text)!important}
-[data-testid="stAlert"] {border-radius:10px}
-[data-testid="stMetric"] label,[data-testid="stMetricValue"] {color:var(--text)!important}
-[data-testid="stHorizontalBlock"] {gap:.8rem;align-items:stretch}
-[data-testid="column"] {min-width:0}
-[data-testid="stRadio"] [role="radiogroup"] {gap:4px}
-[data-testid="stRadio"] label {border-radius:8px;padding:6px 8px;margin:1px 0;color:#b7c8ba!important;font-size:12px}
-[data-testid="stRadio"] label:has(input:checked) {background:linear-gradient(90deg,#173c25,#102719);border:1px solid #2c7442;color:#9df2ae!important}
-[data-testid="stRadio"] label p {font-size:12px}
-hr {border-color:#233b2a}
-footer {visibility:hidden}
-[data-testid="stChatMessage"] {background:#101e15;border:1px solid #253e2c;border-radius:13px;padding:12px 14px}
-[data-testid="stChatInput"] textarea {background:#101e15!important}
-@media(max-width:900px) {
- .block-container {padding:1rem .9rem 2rem}
- .page-title {font-size:26px}
- .hero {padding:22px}
- .hero h2 {font-size:22px}
-}
-@media(max-width:640px) {
- .block-container {padding:.7rem .65rem 1.5rem}
- .page-title {font-size:23px}
- .subtle {font-size:12px}
- .topbar {align-items:flex-start;flex-direction:column}
- .hero {padding:18px 16px;border-radius:13px}
- .hero h2 {font-size:20px}
- .metric {min-height:0;padding:13px}
- .metric-value {font-size:23px}
- .panel,.feature-card {padding:15px 13px}
- [data-testid="stHorizontalBlock"] {flex-wrap:wrap!important;gap:.55rem!important}
- [data-testid="stHorizontalBlock"]>[data-testid="column"] {flex:1 1 100%!important;width:100%!important;min-width:100%!important}
- [data-testid="stSidebar"] .block-container {padding:.8rem .7rem 1.2rem}
- div.stButton>button,.stDownloadButton>button {width:100%;white-space:normal}
+  --bg:     #0b100d;
+  --panel:  #141c17;
+  --line:   #29382e;
+  --text:   #edf3ed;
+  --muted:  #a4b2a7;
+  --green:  #35d36b;
+  --lime:   #a9df72;
+  --input:  #111a14;
 }
 
-/* Public landing and account screens */
-.auth-shell {max-width:1180px;margin:2.4rem auto 1rem;padding:0 1rem}
-.auth-nav {display:flex;align-items:center;justify-content:space-between;padding:13px 17px;border:1px solid #294532;border-radius:16px;background:rgba(9,22,13,.88);margin-bottom:38px}
-.auth-brand {display:flex;align-items:center;gap:10px;font-family:Manrope,sans-serif;font-weight:800;font-size:18px}
-.auth-logo {height:38px;width:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(140deg,#a4f35b,#1aa45a);color:#07110b;font-size:20px}
-.auth-nav-note {font-size:10px;letter-spacing:1.1px;color:#9ab59f;text-transform:uppercase;font-weight:800}
-.landing-hero {padding:clamp(28px,5vw,62px);border:1px solid #2b633b;border-radius:24px;background:radial-gradient(circle at 83% 30%,rgba(112,239,93,.18),transparent 27%),linear-gradient(115deg,#102819,#0d1a11 68%,#153a20);box-shadow:0 20px 65px rgba(0,0,0,.24);position:relative;overflow:hidden}
-.landing-kicker {font-size:10px;letter-spacing:2px;color:#a4f35b;font-weight:900;text-transform:uppercase}
-.landing-hero h1 {font-family:Manrope,sans-serif;font-size:clamp(34px,5vw,58px);line-height:1.08;letter-spacing:-2px;max-width:760px;margin:18px 0 15px;color:#f4fff4!important}
-.landing-hero p {font-size:15px;line-height:1.75;color:#b9cfbd!important;max-width:650px}
-.landing-orb {position:absolute;right:8%;top:22%;width:170px;height:170px;border-radius:50%;border:1px solid rgba(128,242,113,.5);box-shadow:0 0 35px rgba(49,211,90,.17),inset 0 0 35px rgba(49,211,90,.1)}
-.landing-orb:before,.landing-orb:after {content:"";position:absolute;inset:17px;border:1px solid rgba(128,242,113,.38);border-radius:50%}
-.landing-orb:after {inset:35px;border-color:rgba(128,242,113,.26)}
-.landing-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
-.landing-tile {padding:20px;border:1px solid #263f2d;border-radius:15px;background:linear-gradient(145deg,#122219,#0c1810)}
-.landing-tile-icon {height:36px;width:36px;border-radius:11px;background:#1b3825;color:#9af0a9;display:grid;place-items:center;margin-bottom:13px;font-size:17px}
-.landing-tile h3 {font-size:14px;margin:0 0 6px;color:#f1f8f1!important}
-.landing-tile p {font-size:11px;line-height:1.6;color:#9aab9d!important;margin:0}
-.auth-card {max-width:520px;margin:2.5rem auto;padding:clamp(20px,4vw,34px);border:1px solid #2a4b32;border-radius:20px;background:linear-gradient(145deg,#122219,#0b1710);box-shadow:0 18px 55px rgba(0,0,0,.24)}
-.auth-card h1 {font-family:Manrope,sans-serif;font-size:28px;margin:7px 0;color:#f4fff4!important}
-.auth-card p {font-size:12px;color:#9aab9d!important;line-height:1.6}
-.auth-foot {text-align:center;color:#8fa394;font-size:11px;margin-top:18px}
-.overview-welcome {display:flex;justify-content:space-between;gap:20px;align-items:center;padding:23px 25px;border:1px solid #2b633b;border-radius:17px;background:linear-gradient(110deg,#102b1a,#143d24 65%,#17613a);margin:8px 0 18px}
-.overview-welcome h2 {font-family:Manrope,sans-serif;font-size:24px;line-height:1.2;margin:7px 0;color:#f5fff5!important}
-.overview-welcome p {font-size:12px;color:#c4dec9!important;margin:0;line-height:1.6}
-.overview-user {border:1px solid #41794b;border-radius:12px;background:rgba(5,20,10,.3);padding:11px 14px;min-width:130px}
-.overview-user small {display:block;color:#9bdca8;font-size:9px;text-transform:uppercase;letter-spacing:1px}
-.overview-user strong {font-size:13px;color:#fff}
-.overview-section-title {font-family:Manrope,sans-serif;font-size:15px;font-weight:800;margin:20px 0 10px;color:#f1f8f1}
-.quick-card {height:100%;padding:17px;border-radius:14px;border:1px solid #2a4932;background:linear-gradient(145deg,#13251a,#0d1911)}
-.quick-card .q-icon {font-size:19px;color:#a4f35b;margin-bottom:12px}
-.quick-card h3 {font-size:13px;margin:0 0 6px;color:#f2faf2!important}
-.quick-card p {font-size:10px;line-height:1.55;color:#9aab9d!important;min-height:32px}
-.status-row {display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #243c2b;font-size:11px}
-.status-row:last-child {border-bottom:0}
-@media(max-width:760px) {
- .auth-shell {margin:1rem auto}
- .auth-nav {margin-bottom:18px}
- .landing-orb {opacity:.28;right:-45px;top:20px;width:125px;height:125px}
- .landing-grid {grid-template-columns:1fr}
- .overview-welcome {align-items:flex-start;flex-direction:column}
- .overview-user {width:100%}
-}
-
-
-/* Refined visual pass: charcoal surfaces, restrained emerald accents, tighter rhythm */
-:root {
- --bg:#0b100d; --bg2:#0e1511; --panel:#141c17; --panel2:#19231c;
- --line:#29382e; --line2:#3a5140; --text:#edf3ed; --muted:#a4b2a7;
- --green:#2fbd68; --green2:#209653; --lime:#a9df72; --input:#111a14;
-}
+/* ─── Base ───────────────────────────────────────────────────────────── */
+html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .stApp {
- background:
-   radial-gradient(ellipse at 82% 0%,rgba(46,132,75,.10),transparent 34%),
-   #0b100d !important;
- font-size:14px;
+  background: radial-gradient(ellipse at 82% 0%, rgba(46,132,75,.10), transparent 34%), var(--bg) !important;
+  font-size: 14px;
+  color: var(--text);
 }
-.block-container {padding-top:1rem!important;padding-bottom:1.5rem!important}
-[data-testid="stSidebar"] {background:#0e1511!important;border-right:1px solid #26342b!important}
-[data-testid="stSidebar"] .block-container {padding:.8rem .75rem 1.2rem!important}
-.brand {padding:5px 4px 15px!important}
-.topbar {margin-bottom:12px!important;padding:5px 0 10px!important}
-.page-title {font-size:27px!important}
-.subtle {font-size:13px!important}
-.hero {padding:21px 24px!important;margin:10px 0 12px!important;border-radius:15px!important}
-.metric {min-height:90px!important;padding:12px 14px!important;border-radius:11px!important}
-.metric-value {font-size:23px!important;margin:6px 0 1px!important}
-.panel,.feature-card {padding:15px 16px!important;margin:8px 0 11px!important;border-radius:12px!important}
-.step {padding:8px 0!important}
-.step-icon {height:31px!important;width:31px!important;flex-basis:31px!important}
-.landing-hero {padding:clamp(25px,4vw,48px)!important;border-radius:20px!important}
-.landing-grid {gap:12px!important;margin-top:15px!important}
-.landing-tile {padding:16px!important;border-radius:13px!important}
-.landing-tile p {font-size:12px!important}
-.auth-nav {padding:10px 14px!important;margin-bottom:25px!important}
-.auth-shell {margin:1.7rem auto .8rem!important}
-.overview-welcome {padding:19px 21px!important;margin:6px 0 14px!important}
-.quick-card {padding:14px!important}
-.quick-card p {font-size:11px!important;min-height:28px!important}
+[data-testid="stHeader"]  { background: rgba(7,17,11,.96); height: 2.8rem; }
+[data-testid="stToolbar"] { right: 1rem; }
+.block-container { max-width:1600px; width:100%; padding: 1rem clamp(1rem,2.1vw,2rem) 1.5rem; }
+
+/* ─── Sidebar ────────────────────────────────────────────────────────── */
+[data-testid="stSidebar"] { background: #0e1511 !important; border-right: 1px solid #26342b !important; }
+[data-testid="stSidebar"] .block-container { padding: .8rem .75rem 1.2rem !important; }
+
+/* ─── Branding ───────────────────────────────────────────────────────── */
+.brand      { display:flex; align-items:center; gap:10px; padding:5px 4px 15px; }
+.brandmark  { width:39px; height:39px; flex:0 0 39px; border-radius:12px; background:linear-gradient(145deg,#8df34f,#16a45b); display:grid; place-items:center; color:#07110b !important; font-size:21px; font-weight:900; box-shadow:0 0 22px rgba(53,211,107,.18); }
+.brandname  { font-family:Manrope,sans-serif; font-size:18px; font-weight:800; letter-spacing:-.5px; color:#f4fbf4; }
+.brandtag   { font-size:8px; letter-spacing:1.35px; font-weight:800; color:#829989 !important; margin-top:1px; }
+.eyebrow    { font-size:9px; letter-spacing:1.55px; text-transform:uppercase; color:var(--green) !important; font-weight:800; }
+.page-title { font-family:Manrope,sans-serif; font-size:27px; font-weight:800; letter-spacing:-.9px; line-height:1.2; margin:1px 0 4px; color:var(--text) !important; }
+.subtle     { font-size:13px; color:var(--muted) !important; line-height:1.5; }
+.topbar     { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:0 0 12px; padding:5px 0 10px; border-bottom:1px solid rgba(49,82,58,.45); }
+.topbar-left { display:flex; align-items:center; gap:10px; }
+.topbar-tag  { padding:7px 11px; border-radius:20px; background:#102519; border:1px solid #24442d; color:#91e6a7 !important; font-size:10px; font-weight:800; letter-spacing:.5px; }
+
+/* ─── Hero card ──────────────────────────────────────────────────────── */
+.hero { position:relative; overflow:hidden; background:linear-gradient(110deg,#102c1b 0%,#123c25 56%,#17633a 100%); border:1px solid #28623b; border-radius:15px; padding:21px 24px; margin:10px 0 12px; box-shadow:0 12px 35px rgba(0,0,0,.16); }
+.hero:after { content:""; position:absolute; width:270px; height:270px; border-radius:50%; right:-70px; top:-135px; background:radial-gradient(circle,rgba(126,255,121,.18),transparent 68%); pointer-events:none; }
+.hero h2 { font-family:Manrope,sans-serif; font-size:25px; line-height:1.22; letter-spacing:-.7px; margin:8px 0; color:#f5fff5 !important; }
+.hero p  { font-size:13px; line-height:1.6; max-width:690px; color:#c5dfcb !important; margin:0 0 11px; }
+
+/* ─── Metric cards ───────────────────────────────────────────────────── */
+.metric       { height:100%; min-height:90px; padding:12px 14px; border:1px solid var(--line); border-radius:11px; background:linear-gradient(145deg,#14251a,#0d1a12); box-shadow:0 7px 20px rgba(0,0,0,.13); }
+.metric-label { font-size:10px; color:var(--muted) !important; font-weight:600; }
+.metric-value { font-family:Manrope,sans-serif; font-size:23px; font-weight:800; letter-spacing:-.8px; color:#f4fbf4 !important; margin:6px 0 1px; }
+.metric-note  { font-size:9px; line-height:1.4; color:#78dc91 !important; font-weight:700; }
+
+/* ─── Panel / feature card ───────────────────────────────────────────── */
+.panel, .feature-card { background:linear-gradient(145deg,#111f16,#0d1911); border:1px solid var(--line); border-radius:12px; padding:15px 16px; margin:8px 0 11px; box-shadow:0 8px 24px rgba(0,0,0,.12); }
+.panel h3, .feature-card h3 { font-family:Manrope,sans-serif; font-size:16px; font-weight:800; margin:0 0 6px; color:var(--text) !important; }
+.panel-caption { font-size:11px; line-height:1.55; color:var(--muted) !important; margin:0 0 12px; }
+
+/* ─── Card heading / chip ────────────────────────────────────────────── */
+.card-heading      { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
+.card-heading span { font-size:13px; font-weight:800; color:var(--text); }
+.card-chip { font-size:9px; color:#8ce7a1; background:#153321; border:1px solid #275438; border-radius:20px; padding:4px 8px; }
+
+/* ─── Step list ──────────────────────────────────────────────────────── */
+.step         { display:flex; align-items:center; gap:11px; padding:8px 0; border-bottom:1px solid rgba(49,82,58,.5); }
+.step:last-child { border-bottom:0; }
+.step-icon    { height:31px; width:31px; flex:0 0 31px; border-radius:10px; background:#193524; border:1px solid #2b5036; color:#8cf0a5; display:grid; place-items:center; font-size:15px; }
+.step-title   { font-size:11px; font-weight:700; color:var(--text) !important; line-height:1.4; }
+.step-caption { font-size:10px; color:var(--muted) !important; line-height:1.45; margin-top:2px; }
+
+/* ─── Misc ───────────────────────────────────────────────────────────── */
+.pill { display:inline-block; border-radius:20px; padding:6px 10px; background:#143321; border:1px solid #285438; color:#8fe9a5 !important; font-size:9px; font-weight:900; letter-spacing:.45px; }
+.stApp h1,.stApp h2,.stApp h3,.stApp h4,.stApp h5,.stApp strong { color:var(--text); }
+.stCaption, .stCaption *, [data-testid="stCaptionContainer"] { color:var(--muted) !important; }
+[data-testid="stMarkdownContainer"] { color:var(--text); }
+hr     { border-color:#233b2a; }
+footer { visibility:hidden; }
+
+/* ─── Forms & expanders ──────────────────────────────────────────────── */
 [data-testid="stForm"] {
- background:#121a15!important;border:1px solid #2a3b30!important;
- border-radius:12px!important;padding:15px!important;
+  background: #121a15 !important;
+  border: 1px solid #2a3b30 !important;
+  border-radius: 12px !important;
+  padding: 15px !important;
 }
-.stTextInput input,.stTextArea textarea,[data-baseweb="select"]>div {
- min-height:39px!important;border-radius:8px!important;
- background:#101812!important;border-color:#2b3c31!important;
-}
-.stTextArea textarea {min-height:90px!important}
-div.stButton>button,
+[data-testid="stExpander"] { border:1px solid var(--line) !important; border-radius:12px !important; background:#121a15 !important; }
+[data-testid="stVerticalBlockBorderWrapper"] { background:#121a15 !important; border:1px solid var(--line) !important; border-radius:12px !important; padding:1rem 1.05rem !important; }
+
+/* ─── Buttons ────────────────────────────────────────────────────────── */
+div.stButton > button,
 button[kind="primary"],
 button[data-testid="stBaseButton-primary"],
-[data-testid="stBaseButton-primary"] {
- min-height:38px!important;padding:.48rem .85rem!important;
- border-radius:8px!important;font-size:13px!important;
+[data-testid="stBaseButton-primary"],
+[data-testid="stFormSubmitButton"] button,
+button[kind*="primary"] {
+  min-height: 38px !important;
+  padding: .48rem .85rem !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
 }
-div.stButton>button[kind="primary"],
+div.stButton > button[kind="primary"],
 button[kind="primary"],
 button[data-testid="stBaseButton-primary"],
-[data-testid="stBaseButton-primary"] {
- background:linear-gradient(110deg,#239b55,#35bd68)!important;
- border:1px solid #39c875!important;color:#07120b!important;
- box-shadow:0 3px 12px rgba(36,173,91,.13)!important;
+[data-testid="stBaseButton-primary"],
+[data-testid="stFormSubmitButton"] button {
+  background: linear-gradient(110deg,#239b55,#35bd68) !important;
+  border: 1px solid #39c875 !important;
+  color: #07120b !important;
+  box-shadow: 0 3px 12px rgba(36,173,91,.13) !important;
 }
-div.stButton>button[kind="primary"]:hover,
+div.stButton > button[kind="primary"]:hover,
 button[kind="primary"]:hover,
-button[data-testid="stBaseButton-primary"]:hover {
- background:linear-gradient(110deg,#2eaf61,#55cf7d)!important;
- border-color:#65db8b!important;
+button[data-testid="stBaseButton-primary"]:hover,
+[data-testid="stFormSubmitButton"] button:hover {
+  background: linear-gradient(110deg,#2eaf61,#55cf7d) !important;
+  border-color: #65db8b !important;
 }
-div.stButton>button[kind="secondary"],
+div.stButton > button[kind="secondary"],
 button[kind="secondary"],
 button[data-testid="stBaseButton-secondary"] {
- background:#17221a!important;border:1px solid #304638!important;
- color:#e8f1e9!important;
+  background: #17221a !important;
+  border: 1px solid #304638 !important;
+  color: #e8f1e9 !important;
 }
-[data-testid="stChatInput"] {border-color:#304638!important}
-[data-testid="stChatMessage"] {background:#141e17!important;border-color:#2b3c30!important}
+.stDownloadButton > button {
+  background: linear-gradient(110deg,#239b55,#35bd68) !important;
+  border: 1px solid #39c875 !important;
+  color: #07120b !important;
+  border-radius: 8px !important;
+  font-weight: 800;
+}
+
+/* ─── Sidebar radio nav ──────────────────────────────────────────────── */
+[data-testid="stRadio"] [role="radiogroup"] { gap:4px; }
+[data-testid="stRadio"] label { border-radius:8px; padding:6px 8px; margin:1px 0; color:#b7c8ba !important; font-size:12px; }
+[data-testid="stRadio"] label:has(input:checked) { background:linear-gradient(90deg,#173c25,#102719); border:1px solid #2c7442; color:#9df2ae !important; }
+[data-testid="stRadio"] label p { font-size:12px; }
+
+/* ─── Alerts / metrics ───────────────────────────────────────────────── */
+[data-testid="stAlert"]        { border-radius:10px; }
+[data-testid="stMetric"] label,
+[data-testid="stMetricValue"]  { color:var(--text) !important; }
+
+/* ─── Grid helpers ───────────────────────────────────────────────────── */
+[data-testid="stHorizontalBlock"] { gap:.8rem; align-items:stretch; }
+[data-testid="column"]            { min-width:0; }
+
+/* ─── Chat ───────────────────────────────────────────────────────────── */
+[data-testid="stChatMessage"] { background:#141e17 !important; border:1px solid #2b3c30 !important; border-radius:13px; padding:12px 14px; }
+[data-testid="stChatInput"]   { border-color:#304638 !important; }
+
+/* ─── Public / landing screens ───────────────────────────────────────── */
+.auth-shell  { max-width:1180px; margin:1.7rem auto .8rem !important; padding:0 1rem !important; }
+.auth-nav    { display:flex; align-items:center; justify-content:space-between; padding:10px 14px !important; border:1px solid #294532; border-radius:16px; background:rgba(9,22,13,.88); margin-bottom:25px !important; }
+.auth-brand  { display:flex; align-items:center; gap:10px; font-family:Manrope,sans-serif; font-weight:800; font-size:18px; }
+.auth-logo   { height:34px !important; width:34px !important; flex:0 0 34px !important; border-radius:12px; display:grid; place-items:center; background:linear-gradient(140deg,#a4f35b,#1aa45a); color:#07110b; font-size:20px; }
+.auth-nav-note { font-size:10px; letter-spacing:1.1px; color:#9ab59f; text-transform:uppercase; font-weight:800; }
+.landing-hero { padding:clamp(25px,4vw,48px) !important; border:1px solid #2b633b; border-radius:20px !important; background:radial-gradient(circle at 83% 30%,rgba(112,239,93,.18),transparent 27%),linear-gradient(115deg,#102819,#0d1a11 68%,#153a20); box-shadow:0 20px 65px rgba(0,0,0,.24); position:relative; overflow:hidden; }
+.landing-kicker { font-size:10px; letter-spacing:2px; color:#a4f35b; font-weight:900; text-transform:uppercase; }
+.landing-hero h1 { font-family:Manrope,sans-serif; font-size:clamp(34px,5vw,58px); line-height:1.08; letter-spacing:-2px; max-width:760px; margin:18px 0 15px; color:#f4fff4 !important; }
+.landing-hero p  { font-size:15px; line-height:1.75; color:#b9cfbd !important; max-width:650px; }
+.landing-orb { position:absolute; right:8%; top:22%; width:170px; height:170px; border-radius:50%; border:1px solid rgba(128,242,113,.5); box-shadow:0 0 35px rgba(49,211,90,.17),inset 0 0 35px rgba(49,211,90,.1); }
+.landing-orb:before,.landing-orb:after { content:""; position:absolute; inset:17px; border:1px solid rgba(128,242,113,.38); border-radius:50%; }
+.landing-orb:after { inset:35px; border-color:rgba(128,242,113,.26); }
+.landing-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px !important; margin-top:15px !important; }
+.landing-tile { padding:16px !important; border:1px solid #263f2d; border-radius:13px !important; background:linear-gradient(145deg,#122219,#0c1810); }
+.landing-tile-icon { height:36px; width:36px; border-radius:11px; background:#1b3825; color:#9af0a9; display:grid; place-items:center; margin-bottom:13px; font-size:17px; }
+.landing-tile h3 { font-size:13px !important; line-height:1.35 !important; margin:0 0 6px; color:#f1f8f1 !important; }
+.landing-tile p  { font-size:11px !important; line-height:1.5 !important; color:#9aab9d !important; margin:0; }
+.auth-card { max-width:520px; margin:2.5rem auto; padding:clamp(20px,4vw,34px); border:1px solid #2a4b32; border-radius:20px; background:linear-gradient(145deg,#122219,#0b1710); box-shadow:0 18px 55px rgba(0,0,0,.24); }
+.auth-card h1 { font-family:Manrope,sans-serif; font-size:28px; margin:7px 0; color:#f4fff4 !important; }
+.auth-card p  { font-size:12px; color:#9aab9d !important; line-height:1.6; }
+.auth-foot    { text-align:center; color:#8fa394; font-size:11px; margin-top:18px; }
+
+/* ─── Landing Page Navigation Bar ───────────────────────────────────── */
+.landing-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(13, 23, 19, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(43, 99, 59, 0.3);
+  padding: 12px 0;
+}
+.navbar-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.navbar-links {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  flex: 1;
+}
+.navbar-links a {
+  font-size: 13px;
+  color: #c5e8cc;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.navbar-links a:hover {
+  color: #a9df72;
+}
+.navbar-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.navbar-signin {
+  background: transparent;
+  border: 1px solid #35d36b;
+  color: #35d36b;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.navbar-signin:hover {
+  background: rgba(53, 211, 107, 0.1);
+}
+.navbar-cta {
+  background: linear-gradient(110deg, #239b55, #35bd68);
+  color: #07120b;
+  border: 1px solid #39c875;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.navbar-cta:hover {
+  background: linear-gradient(110deg, #2eaf61, #55cf7d);
+  border-color: #65db8b;
+}
+
+/* ─── Landing Page Container ────────────────────────────────────────── */
+.landing-container {
+  background: #0b100d;
+}
+
+/* ─── Hero Section ──────────────────────────────────────────────────── */
+.landing-hero-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.hero-eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #a9df72;
+  font-weight: 800;
+}
+.hero-title {
+  font-family: Manrope, sans-serif;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1.8px;
+  color: #f4fbf4;
+  margin: 0;
+}
+.hero-subtitle {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #b9cfbd;
+  max-width: 600px;
+  margin: 0;
+}
+.hero-cta-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  background: linear-gradient(110deg, #239b55, #35bd68);
+  color: #07120b;
+  border: 1px solid #39c875;
+  padding: 11px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: linear-gradient(110deg, #2eaf61, #55cf7d);
+  border-color: #65db8b;
+  box-shadow: 0 6px 20px rgba(35, 155, 85, 0.2);
+}
+.btn-secondary {
+  background: transparent;
+  color: #a9df72;
+  border: 1px solid #a9df72;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover {
+  background: rgba(169, 223, 114, 0.1);
+}
+.btn-large {
+  padding: 14px 32px;
+  font-size: 16px;
+}
+
+.hero-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dashboard-mockup {
+  background: linear-gradient(145deg, #141c17, #0d1911);
+  border: 1px solid #2b4932;
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+.mockup-header {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.mockup-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2a4932;
+}
+.mockup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mockup-section {
+  background: rgba(19, 37, 26, 0.4);
+  border: 1px solid #1f3428;
+  border-radius: 8px;
+  padding: 12px;
+}
+.mockup-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #8fe0b2;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.mockup-item, .mockup-feature, .mockup-stat {
+  font-size: 12px;
+  color: #c5e8cc;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+}
+.stat-number {
+  font-size: 18px;
+  font-weight: 800;
+  color: #a9df72;
+  margin-right: 6px;
+}
+
+/* ─── Features Section ──────────────────────────────────────────────── */
+.landing-features-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 5rem 2rem;
+  background: linear-gradient(180deg, rgba(11, 16, 13, 0), rgba(17, 26, 22, 0.5));
+}
+.section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+.section-header h2 {
+  font-family: Manrope, sans-serif;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #f4fbf4;
+  margin: 0 0 1rem;
+}
+.section-header p {
+  font-size: 16px;
+  color: #b9cfbd;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+.feature-card {
+  background: linear-gradient(145deg, #111f16, #0d1911);
+  border: 1px solid #2b4932;
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 0.3s;
+}
+.feature-card:hover {
+  border-color: #35d36b;
+  box-shadow: 0 12px 40px rgba(53, 211, 107, 0.1);
+  transform: translateY(-4px);
+}
+.feature-card.clickable-card {
+  cursor: pointer;
+}
+.feature-card.clickable-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(53, 211, 107, 0.15);
+}
+.feature-icon {
+  font-size: 32px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(169, 223, 114, 0.1);
+  border-radius: 10px;
+}
+.feature-card h3 {
+  font-family: Manrope, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f4fbf4;
+  margin: 0;
+}
+.feature-card p {
+  font-size: 14px;
+  color: #b9cfbd;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── How It Works Section ──────────────────────────────────────────── */
+.landing-how-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 5rem 2rem;
+  background: #0b100d;
+}
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+.step-card {
+  background: linear-gradient(145deg, #141c17, #0d1911);
+  border: 1px solid #2b4932;
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.step-card.clickable-card {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.step-card.clickable-card:hover {
+  border-color: #35d36b;
+  box-shadow: 0 12px 40px rgba(53, 211, 107, 0.1);
+  transform: translateY(-4px);
+}
+.step-card.clickable-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(53, 211, 107, 0.15);
+}
+.step-number {
+  font-family: Manrope, sans-serif;
+  font-size: 48px;
+  font-weight: 800;
+  color: #a9df72;
+  line-height: 1;
+}
+.step-card h3 {
+  font-family: Manrope, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #f4fbf4;
+  margin: 0;
+}
+.step-card p {
+  font-size: 14px;
+  color: #b9cfbd;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── Why VendorSaathi Section ──────────────────────────────────────── */
+.landing-why-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 5rem 2rem;
+  background: linear-gradient(180deg, rgba(11, 16, 13, 0), rgba(17, 26, 22, 0.5));
+}
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+.why-card {
+  background: linear-gradient(145deg, #111f16, #0d1911);
+  border: 1px solid #2b4932;
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  text-align: center;
+}
+.why-card.clickable-card {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.why-card.clickable-card:hover {
+  border-color: #35d36b;
+  box-shadow: 0 12px 40px rgba(53, 211, 107, 0.1);
+  transform: translateY(-4px);
+}
+.why-card.clickable-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(53, 211, 107, 0.15);
+}
+.why-icon {
+  font-size: 40px;
+}
+.why-card h3 {
+  font-family: Manrope, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f4fbf4;
+  margin: 0;
+}
+.why-card p {
+  font-size: 14px;
+  color: #b9cfbd;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── CTA Section ───────────────────────────────────────────────────── */
+.landing-cta-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: linear-gradient(110deg, #102c1b, #0d1a11);
+  border-radius: 16px;
+  margin: 5rem 2rem;
+}
+.landing-cta-section h2 {
+  font-family: Manrope, sans-serif;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  color: #f4fbf4;
+  margin: 0 0 1rem;
+}
+.landing-cta-section p {
+  font-size: 16px;
+  color: #b9cfbd;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+}
+
+/* ─── Footer ────────────────────────────────────────────────────────── */
+.landing-footer {
+  background: #0a0f0c;
+  border-top: 1px solid #1f3428;
+  padding: 4rem 2rem 2rem;
+}
+.footer-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3rem;
+  margin-bottom: 2rem;
+}
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.footer-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(140deg, #a4f35b, #1aa45a);
+  color: #07110b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 0.5rem;
+}
+.footer-title {
+  font-family: Manrope, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  color: #f4fbf4;
+}
+.footer-subtitle {
+  font-size: 12px;
+  color: #8fa394;
+}
+.footer-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+.footer-section h4 {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f4fbf4;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 1rem;
+}
+.footer-section a {
+  display: block;
+  font-size: 13px;
+  color: #8fa394;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  transition: color 0.2s;
+}
+.footer-section a:hover {
+  color: #a9df72;
+}
+.footer-attribution {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-top: 2rem;
+  border-top: 1px solid #1f3428;
+  text-align: center;
+}
+.footer-tech {
+  font-size: 12px;
+  color: #8fa394;
+  margin-bottom: 0.5rem;
+}
+.footer-copy {
+  font-size: 11px;
+  color: #5a6b63;
+}
+
+/* ─── Home page layout ───────────────────────────────────────────────── */
+.home-main { max-width:1180px !important; margin:2.1rem auto 1rem !important; padding:0 1rem !important; }
+.home-main .landing-hero { min-height:0 !important; padding:42px 46px !important; border-radius:20px !important; display:flex; align-items:center; box-sizing:border-box; }
+.home-main .landing-copy { position:relative; z-index:1; max-width:700px; }
+.home-main .landing-hero h1 { font-size:clamp(35px,4.1vw,51px) !important; line-height:1.09 !important; letter-spacing:-1.7px !important; max-width:690px !important; margin:17px 0 14px !important; }
+.home-main .landing-hero h1 span { color:#a9df72 !important; display:inline; }
+.home-main .landing-hero p { font-size:14px !important; line-height:1.65 !important; max-width:650px !important; margin-bottom:0 !important; }
+.home-main .landing-orb { width:142px !important; height:142px !important; right:7% !important; top:25% !important; opacity:.75; }
+.home-feature-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:16px; }
+.home-feature-grid .landing-tile { min-width:0; padding:16px !important; min-height:145px; box-sizing:border-box; }
+.home-feature-grid .landing-tile-icon { width:32px; height:32px; margin-bottom:10px; }
+.home-footer { text-align:center; color:#718878; font-size:9px; letter-spacing:.35px; margin:17px 0 0; }
+div[data-testid="stHorizontalBlock"]:has(button[key="home_signup"]) { max-width:1180px; margin:0 auto !important; }
+
+/* ─── Overview page ──────────────────────────────────────────────────── */
+.overview-welcome   { display:flex; justify-content:space-between; gap:20px; align-items:center; padding:19px 21px; border:1px solid #2b633b; border-radius:17px; background:linear-gradient(110deg,#102b1a,#143d24 65%,#17613a); margin:6px 0 14px; }
+.overview-welcome h2 { font-family:Manrope,sans-serif; font-size:24px; line-height:1.2; margin:7px 0; color:#f5fff5 !important; }
+.overview-welcome p  { font-size:12px; color:#c4dec9 !important; margin:0; line-height:1.6; }
+.overview-user       { border:1px solid #41794b; border-radius:12px; background:rgba(5,20,10,.3); padding:11px 14px; min-width:130px; }
+.overview-user small { display:block; color:#9bdca8; font-size:9px; text-transform:uppercase; letter-spacing:1px; }
+.overview-user strong { font-size:13px; color:#fff; }
+.overview-section-title { font-family:Manrope,sans-serif; font-size:15px; font-weight:800; margin:20px 0 10px; color:#f1f8f1; }
+.quick-card     { height:100%; padding:14px; border-radius:14px; border:1px solid #2a4932; background:linear-gradient(145deg,#13251a,#0d1911); }
+.quick-card .q-icon { font-size:19px; color:#a4f35b; margin-bottom:12px; }
+.quick-card h3  { font-size:13px; margin:0 0 6px; color:#f2faf2 !important; }
+.quick-card p   { font-size:11px !important; line-height:1.55; color:#9aab9d !important; min-height:28px; }
+.status-row     { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid #243c2b; font-size:11px; }
+.status-row:last-child { border-bottom:0; }
+
+/* ─── Responsive ─────────────────────────────────────────────────────── */
+@media(max-width:1024px) {
+  .landing-hero-section {
+    grid-template-columns: 1fr;
+    padding: 3rem 2rem;
+    gap: 2rem;
+  }
+  .navbar-links {
+    display: none;
+  }
+}
+@media(max-width:900px) {
+  .block-container { padding:1rem .9rem 2rem; }
+  .page-title { font-size:26px; }
+  .hero { padding:22px; }
+  .hero h2 { font-size:22px; }
+  .navbar-container {
+    padding: 0 1.5rem;
+  }
+  .navbar-actions {
+    gap: 0.5rem;
+  }
+  .navbar-cta, .navbar-signin {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media(max-width:768px) {
+  .landing-hero-section {
+    padding: 2rem 1.5rem;
+  }
+  .dashboard-mockup {
+    max-width: 100%;
+  }
+  .navbar-container {
+    gap: 1rem;
+  }
+  .hero-title {
+    font-size: 32px;
+  }
+  .section-header h2 {
+    font-size: 28px;
+  }
+  .features-grid, .steps-grid, .why-grid {
+    grid-template-columns: 1fr;
+  }
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
 @media(max-width:760px) {
- .block-container {padding:.7rem .65rem 1.2rem!important}
- .auth-shell {margin:1rem auto!important}
- .auth-nav {margin-bottom:16px!important}
- .hero {padding:17px 15px!important}
- .metric {padding:12px!important}
+  .auth-shell { margin:1rem auto !important; }
+  .auth-nav   { margin-bottom:16px !important; }
+  .landing-orb { opacity:.28; right:-45px; top:20px; width:125px; height:125px; }
+  .landing-grid { grid-template-columns:1fr; }
+  .overview-welcome { align-items:flex-start; flex-direction:column; }
+  .overview-user { width:100%; }
+  .public-header-shell { margin-top:.7rem !important; }
+  .home-main { margin:1.1rem auto .7rem !important; padding:0 .65rem !important; }
+  .home-main .landing-hero { padding:25px 20px !important; min-height:0 !important; }
+  .home-main .landing-hero h1 { font-size:34px !important; max-width:100% !important; }
+  .home-main .landing-hero p  { font-size:13px !important; }
+  .home-main .landing-orb { width:90px !important; height:90px !important; right:5% !important; top:8% !important; opacity:.35; }
+  .home-feature-grid { grid-template-columns:1fr; gap:9px; }
+  .home-feature-grid .landing-tile { min-height:0; padding:14px !important; }
+  .hero { padding:17px 15px !important; }
+  .metric { padding:12px !important; }
+  .landing-navbar {
+    padding: 8px 0;
+  }
+  .navbar-container {
+    padding: 0 1rem;
+    gap: 0.5rem;
+  }
+  .navbar-brand {
+    font-size: 14px;
+  }
+  .navbar-links {
+    display: none !important;
+  }
+  .navbar-actions {
+    width: 100%;
+  }
+  .landing-cta-section {
+    margin: 3rem 1rem;
+    padding: 2rem 1.5rem;
+  }
 }
-
-
-button[kind*="primary"],
-[data-testid="stFormSubmitButton"] button,
-[data-testid="stForm"] button[kind] {
- background:linear-gradient(110deg,#239b55,#35bd68)!important;
- border:1px solid #39c875!important;color:#07120b!important;
+@media(max-width:640px) {
+  .block-container { padding:.7rem .65rem 1.5rem; }
+  .page-title { font-size:23px; }
+  .subtle     { font-size:12px; }
+  .topbar     { align-items:flex-start; flex-direction:column; }
+  .hero       { border-radius:13px; }
+  .hero h2    { font-size:20px; }
+  .metric     { min-height:0; }
+  .metric-value { font-size:23px; }
+  [data-testid="stHorizontalBlock"] { flex-wrap:wrap !important; gap:.55rem !important; }
+  [data-testid="stHorizontalBlock"] > [data-testid="column"] { flex:1 1 100% !important; width:100% !important; min-width:100% !important; }
+  [data-testid="stSidebar"] .block-container { padding:.8rem .7rem 1.2rem; }
+  div.stButton > button, .stDownloadButton > button { width:100%; white-space:normal; }
+  .hero-title {
+    font-size: 28px;
+  }
+  .hero-subtitle {
+    font-size: 14px;
+  }
+  .hero-cta-buttons {
+    flex-direction: column;
+  }
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+  .section-header h2 {
+    font-size: 24px;
+  }
+  .step-number {
+    font-size: 36px;
+  }
 }
-[data-testid="stFormSubmitButton"] button:hover,
-[data-testid="stForm"] button[kind]:hover {
- background:linear-gradient(110deg,#2eaf61,#55cf7d)!important;
- border-color:#65db8b!important;
-}
-
-
-/* Landing page alignment correction */
-.public-header-shell {margin-top:1.15rem!important;margin-bottom:0!important}
-.public-header-shell .auth-nav {
-  min-height:58px!important;height:auto!important;box-sizing:border-box;
-  padding:9px 15px!important;margin-bottom:0!important;overflow:visible!important;
-}
-.auth-logo {width:34px!important;height:34px!important;flex:0 0 34px!important}
-.home-main {max-width:1180px!important;margin:2.1rem auto 1rem!important;padding:0 1rem!important}
-.home-main .landing-hero {
-  min-height:0!important;padding:42px 46px!important;border-radius:20px!important;
-  display:flex;align-items:center;box-sizing:border-box;
-}
-.home-main .landing-copy {position:relative;z-index:1;max-width:700px}
-.home-main .landing-hero h1 {
-  font-size:clamp(35px,4.1vw,51px)!important;line-height:1.09!important;
-  letter-spacing:-1.7px!important;max-width:690px!important;margin:17px 0 14px!important;
-}
-.home-main .landing-hero h1 span {color:#a9df72!important;display:inline}
-.home-main .landing-hero p {font-size:14px!important;line-height:1.65!important;max-width:650px!important;margin-bottom:0!important}
-.home-main .landing-orb {width:142px!important;height:142px!important;right:7%!important;top:25%!important;opacity:.75}
-.home-feature-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
-.home-feature-grid .landing-tile {min-width:0;padding:16px!important;min-height:145px;box-sizing:border-box}
-.home-feature-grid .landing-tile-icon {width:32px;height:32px;margin-bottom:10px}
-.home-feature-grid .landing-tile h3 {font-size:13px!important;line-height:1.35!important}
-.home-feature-grid .landing-tile p {font-size:11px!important;line-height:1.5!important}
-.home-footer {text-align:center;color:#718878;font-size:9px;letter-spacing:.35px;margin:17px 0 0}
-div[data-testid="stHorizontalBlock"]:has(button[key="home_signup"]) {max-width:1180px;margin:0 auto!important}
-@media(max-width:760px) {
- .public-header-shell {margin-top:.7rem!important}
- .home-main {margin:1.1rem auto .7rem!important;padding:0 .65rem!important}
- .home-main .landing-hero {padding:25px 20px!important;min-height:0!important}
- .home-main .landing-hero h1 {font-size:34px!important;max-width:100%!important}
- .home-main .landing-hero p {font-size:13px!important}
- .home-main .landing-orb {width:90px!important;height:90px!important;right:5%!important;top:8%!important;opacity:.35}
- .home-feature-grid {grid-template-columns:1fr;gap:9px}
- .home-feature-grid .landing-tile {min-height:0;padding:14px!important}
-}
-
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
@@ -625,10 +1193,14 @@ if "authenticated" not in st.session_state:
 
 def show_public_nav():
     st.markdown("""
-    <div class="auth-shell public-header-shell">
-      <div class="auth-nav">
-        <div class="auth-brand"><div class="auth-logo">✦</div><span>VendorSaathi <span style="color:#a9df72">AI</span></span></div>
-        <div class="auth-nav-note">Your digital business partner</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0 18px;">
+      <div style="width:36px;height:36px;border-radius:11px;background:linear-gradient(140deg,#a4f35b,#1aa45a);
+                  color:#07110b;display:grid;place-items:center;font-size:20px;font-weight:900;flex:0 0 36px;">✦</div>
+      <div>
+        <div style="font-family:Manrope,sans-serif;font-size:18px;font-weight:800;color:#f4fbf4;">
+          VendorSaathi <span style="color:#a9df72;">AI</span>
+        </div>
+        <div style="font-size:9px;letter-spacing:1.2px;color:#829989;font-weight:700;">YOUR DIGITAL BUSINESS PARTNER</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -636,49 +1208,85 @@ def show_public_nav():
 def render_home():
     show_public_nav()
 
+    # ── Hero ─────────────────────────────────────────────────────────────
     st.markdown("""
-    <div class="auth-shell home-main">
-      <section class="landing-hero">
-        <div class="landing-orb"></div>
-        <div class="landing-copy">
-          <div class="landing-kicker">✦ BUILT FOR INDIA'S STREET VENDORS</div>
-          <h1>Take your street business <span>one step further.</span></h1>
-          <p>Create a digital business profile, make promotions customers notice, understand digital onboarding and explore government information — with an AI assistant designed around your everyday business.</p>
-        </div>
-      </section>
-      <div class="home-feature-grid">
-        <article class="landing-tile">
-          <div class="landing-tile-icon">▣</div>
-          <h3>Build your business profile</h3>
-          <p>Turn your stall details into a clear profile for customers and online listings.</p>
-        </article>
-        <article class="landing-tile">
-          <div class="landing-tile-icon">✦</div>
-          <h3>Create customer promotions</h3>
-          <p>Prepare short promotional messages in your preferred language.</p>
-        </article>
-        <article class="landing-tile">
-          <div class="landing-tile-icon">⌂</div>
-          <h3>Understand digital services</h3>
-          <p>Explore digitalization steps and ask questions grounded in government reference PDFs.</p>
-        </article>
-      </div>
-      <div class="home-footer">POWERED BY IBM WATSONX.AI · IBM GRANITE</div>
+    <div class="hero" style="margin-bottom:18px;">
+      <div class="landing-kicker">✦ BUILT FOR INDIA'S STREET VENDORS</div>
+      <h2 style="font-family:Manrope,sans-serif;font-size:clamp(26px,3.5vw,40px);
+                 font-weight:800;letter-spacing:-1px;margin:10px 0 10px;color:#f5fff5;">
+        Take Your Street Business Digital
+      </h2>
+      <p style="font-size:14px;line-height:1.7;color:#b9cfbd;max-width:640px;margin:0;">
+        VendorSaathi AI helps you create professional business profiles, reach more customers,
+        craft engaging promotions, and access government schemes — all powered by IBM Granite AI.
+      </p>
+      <div class="landing-orb"></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Keep the two account actions aligned with the same content width as the hero.
-    left, action_col, right = st.columns([1, 8, 1], gap="small")
-    with action_col:
-        signup_col, login_col = st.columns(2, gap="small")
-        with signup_col:
-            if st.button("Get started · Create account", type="primary", use_container_width=True, key="home_signup"):
-                st.session_state["auth_view"] = "Signup"
-                st.rerun()
-        with login_col:
-            if st.button("I already have an account · Sign in", use_container_width=True, key="home_login"):
-                st.session_state["auth_view"] = "Login"
-                st.rerun()
+    # ── Feature pills ─────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+      <span class="pill">✧ AI Copilot</span>
+      <span class="pill">▣ Business Profile</span>
+      <span class="pill">⌖ Local SEO</span>
+      <span class="pill">✎ Promo Studio</span>
+      <span class="pill">✓ Digitalization Checklist</span>
+      <span class="pill">⌂ Government Schemes</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Sign in / Sign up cards side by side ──────────────────────────────
+    login_col, signup_col = st.columns(2, gap="large")
+
+    with login_col:
+        with st.container(border=True):
+            st.markdown('<div class="eyebrow">EXISTING USER</div>', unsafe_allow_html=True)
+            st.markdown("### Sign in")
+            st.caption("Access your vendor workspace and saved data.")
+            with st.form("home_login_form"):
+                email_l = st.text_input("Email address", placeholder="you@example.com", key="hl_email")
+                password_l = st.text_input("Password", type="password", placeholder="Your password", key="hl_pass")
+                submitted_l = st.form_submit_button("Sign in →", type="primary", use_container_width=True)
+            if submitted_l:
+                account = verify_account(email_l, password_l)
+                if account:
+                    st.session_state["authenticated"] = True
+                    st.session_state["account"] = account
+                    st.session_state["auth_view"] = "App"
+                    st.rerun()
+                else:
+                    st.error("Email or password is incorrect.")
+
+    with signup_col:
+        with st.container(border=True):
+            st.markdown('<div class="eyebrow">NEW USER</div>', unsafe_allow_html=True)
+            st.markdown("### Create account")
+            st.caption("Free to use — set up in under 2 minutes.")
+            with st.form("home_signup_form"):
+                full_name_s = st.text_input("Your name", placeholder="e.g. ABC", key="hs_name")
+                email_s = st.text_input("Email address", placeholder="you@example.com", key="hs_email")
+                password_s = st.text_input("Password (min 8 chars)", type="password", key="hs_pass")
+                confirm_s = st.text_input("Confirm password", type="password", key="hs_confirm")
+                submitted_s = st.form_submit_button("Create account →", type="primary", use_container_width=True)
+            if submitted_s:
+                if not full_name_s.strip() or not email_s.strip() or not password_s:
+                    st.error("Please complete all fields.")
+                elif "@" not in email_s or "." not in email_s.split("@")[-1]:
+                    st.error("Enter a valid email address.")
+                elif len(password_s) < 8:
+                    st.error("Password must be at least 8 characters.")
+                elif password_s != confirm_s:
+                    st.error("Passwords do not match.")
+                else:
+                    ok, message = create_account(full_name_s, email_s, password_s)
+                    if ok:
+                        st.success("Account created! Sign in on the left.")
+                    else:
+                        st.error(message)
+
+    st.markdown('<div class="home-footer">Powered by IBM watsonx.ai · IBM Granite · © 2025 VendorSaathi</div>', unsafe_allow_html=True)
+
 
 def render_login():
     show_public_nav()
@@ -711,7 +1319,7 @@ def render_signup():
         with st.container(border=True):
             st.markdown('<div class="eyebrow">JOIN VENDORSAATHI</div><h1 style="font-family:Manrope,sans-serif;font-size:25px;margin:6px 0;color:#edf3ed">Create your account</h1><p style="font-size:12px;color:#a4b2a7;margin:0 0 13px">Set up your account to access your vendor workspace.</p>', unsafe_allow_html=True)
             with st.form("signup_form"):
-                full_name = st.text_input("Your name", placeholder="e.g. Aashya")
+                full_name = st.text_input("Your name", placeholder="e.g. ABC")
                 email = st.text_input("Email address", placeholder="you@example.com")
                 password = st.text_input("Create password", type="password", help="Use at least 8 characters.")
                 confirm = st.text_input("Confirm password", type="password")
@@ -825,16 +1433,45 @@ def get_safe_scheme_answer(question, hits):
     
     asks_gem_add = "gem" in q and "product" in q and any(t in q for t in ("add","adding","create","creating","list","listing","catalog"))
     if asks_gem_add and "catalog" in evidence and "add new product" in evidence:
-        return ("According to the retrieved GeM seller-manual passage:\\n\\n1. Open the Catalog tab.\\n2. Select Add New Product from the dropdown menu.\\n\\nThe available passage does not establish subsequent submission or approval steps. Verify the current workflow on GeM.")
+        return (
+            "According to the retrieved GeM seller-manual passage:\n\n"
+            "1. Open the Catalog tab.\n"
+            "2. Select Add New Product from the dropdown menu.\n\n"
+            "The available passage does not establish subsequent submission or approval steps. "
+            "Verify the current workflow on GeM."
+        )
     asks_gem_docs = "gem" in q and any(t in q for t in ("document","documents","requirement","requirements","aadhaar","gstin","pan"))
     if asks_gem_docs:
-        return ("The retrieved GeM seller manual excerpt contains a table of contents referring to primary and secondary seller registration. It does not establish the required documents. Please check the official GeM portal for current requirements.")
+        return (
+            "The retrieved GeM seller manual excerpt contains a table of contents referring to "
+            "primary and secondary seller registration. It does not establish the required documents. "
+            "Please check the official GeM portal for current requirements."
+        )
     return None
 
 # ------------------------------ Navigation callbacks ----------------------
 def navigate_to(page_name: str):
     """Update the radio widget value before the next script run creates it."""
     st.session_state["selected_page"] = page_name
+
+
+def _clean_response(text: str) -> str:
+    """Normalise escape sequences in LLM responses so they render correctly.
+
+    Granite sometimes returns literal backslash-n sequences (the two characters
+    '\\' and 'n') instead of real newlines. This function converts them to real
+    newlines so that st.markdown renders paragraphs, numbered lists, etc.
+    """
+    if not isinstance(text, str):
+        return text
+    # Replace literal \n  (backslash + n) with a real newline.
+    # Use a careful approach: only replace \\n that are NOT already a real newline.
+    # Python stores the literal two-char sequence as '\\n' in a string variable.
+    cleaned = text.replace("\\n", "\n")
+    # Collapse sequences of 3+ newlines to a maximum of two (one blank line).
+    import re as _re
+    cleaned = _re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned
 
 
 # ------------------------------ Sidebar -----------------------------------
@@ -939,70 +1576,155 @@ if not is_configured():
 if page == "Overview":
     account = st.session_state.get("account", {})
     display_name = account.get("full_name", "Vendor")
-    business_label = vendor.get("business_name") or "Set up your stall profile"
     source_count = len({p.source for p in retriever.passages}) if retriever else 0
 
+    # ── Welcome bar ──────────────────────────────────────────────────────
     st.markdown(f"""
     <section class="overview-welcome">
       <div>
-        <div class="eyebrow">YOUR BUSINESS WORKSPACE</div>
-        <h2>Good to see you, {escape(display_name.split()[0])}.</h2>
-        <p>Everything you need to take your street business digital, in one place.</p>
+        <div class="eyebrow">WELCOME TO VENDORSAATHI AI</div>
+        <h2>Hello, {escape(display_name.split()[0])}.</h2>
+        <p>Your AI-powered workspace for digitizing and growing your street business.</p>
       </div>
-      <div class="overview-user"><small>YOUR STALL</small><strong>{escape(business_label)}</strong></div>
     </section>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="overview-section-title">Your VendorSaathi toolkit</div>', unsafe_allow_html=True)
-    tool_cols = st.columns(5)
-    tool_cards = [
-        ("▣","Business Profile","Create a digital identity for your stall.","Business Profile"),
-        ("✦","Promo Studio","Prepare WhatsApp and social promotions.","Promo Studio"),
-        ("⌖", "Local SEO", "Improve your local online visibility.", "Local SEO"),
-        ("✓","Digital Checklist","Plan your next digital steps.","Digitalization Checklist"),
-        ("⌂","Government Help","Explore information from reference PDFs.","Government Schemes"),
-    ]
-    for col, (ico, title, desc, target) in zip(tool_cols, tool_cards):
-        with col:
-            st.markdown(f'<div class="quick-card"><div class="q-icon">{ico}</div><h3>{title}</h3><p>{desc}</p></div>', unsafe_allow_html=True)
+    # ── Business profile summary ─────────────────────────────────────────
+    st.markdown('<div class="overview-section-title">Your business profile</div>', unsafe_allow_html=True)
+    if vendor.get("business_name"):
+        prof_cols = st.columns([2, 2, 2, 1], gap="small")
+        with prof_cols[0]:
+            st.markdown(
+                f'<div class="metric"><div class="metric-label">BUSINESS NAME</div>'
+                f'<div style="font-weight:800;font-size:15px;margin-top:8px;color:#f4fbf4">'
+                f'{escape(vendor.get("business_name",""))}</div></div>',
+                unsafe_allow_html=True,
+            )
+        with prof_cols[1]:
+            st.markdown(
+                f'<div class="metric"><div class="metric-label">CATEGORY</div>'
+                f'<div style="font-weight:700;font-size:13px;margin-top:8px;color:#c5e8cc">'
+                f'{escape(vendor.get("vendor_type",""))}</div></div>',
+                unsafe_allow_html=True,
+            )
+        with prof_cols[2]:
+            st.markdown(
+                f'<div class="metric"><div class="metric-label">LOCATION</div>'
+                f'<div style="font-weight:700;font-size:13px;margin-top:8px;color:#c5e8cc">'
+                f'{escape(vendor.get("location") or "Not set")}</div></div>',
+                unsafe_allow_html=True,
+            )
+        with prof_cols[3]:
             st.button(
-                "Open tool →",
-                key=f"overview_{target}",
+                "Edit profile",
+                key="dash_edit_profile",
                 use_container_width=True,
                 on_click=navigate_to,
-                args=(target,),
+                args=("Business Profile",),
+            )
+    else:
+        with st.container(border=True):
+            st.markdown(
+                '<div class="card-heading">'
+                '<span>No business profile saved yet</span>'
+                '<span class="card-chip">ACTION NEEDED</span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            st.caption("Add your business name, category, location and products to unlock all AI tools.")
+            st.button(
+                "✎ Create your business profile",
+                type="primary",
+                key="dash_create_profile",
+                on_click=navigate_to,
+                args=("Business Profile",),
             )
 
-    st.markdown('<div class="overview-section-title">Workspace snapshot</div>', unsafe_allow_html=True)
-    stats = st.columns(4)
-    stat_values = [
-        ("AI TOOLS","4","Profile · Promotion · Checklist · Scheme Q&A"),
-        ("REFERENCE LIBRARY",str(source_count),"PDF sources indexed"),
-        ("LANGUAGES","3","English · Tamil · Hindi"),
-        ("AI ENGINE","Granite","IBM watsonx.ai"),
-    ]
-    for col, (label, value, note) in zip(stats, stat_values):
-        with col:
-            st.markdown(f'<div class="metric"><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="metric-note">{note}</div></div>', unsafe_allow_html=True)
+    # ── Feature navigation cards ─────────────────────────────────────────
+    st.markdown('<div class="overview-section-title">Tools</div>', unsafe_allow_html=True)
 
-    left, right = st.columns([1.2,.8], gap="medium")
-    with left:
-        with st.container(border=True):
-            st.markdown('<div class="card-heading"><span>Start with these steps</span><span class="card-chip">QUICK GUIDE</span></div>', unsafe_allow_html=True)
-            steps = [
-                ("01","Add your business details","Save your stall name, category, location and products in the sidebar."),
-                ("02","Create your digital profile","Generate a description customers can use to discover your business."),
-                ("03","Share a promotion","Prepare a short message for WhatsApp or social media."),
-            ]
-            for number, title, desc in steps:
-                st.markdown(f'<div class="step"><div class="step-icon">{number}</div><div><div class="step-title">{title}</div><div class="step-caption">{desc}</div></div></div>', unsafe_allow_html=True)
-    with right:
-        with st.container(border=True):
-            st.markdown('<div class="card-heading"><span>System status</span><span class="card-chip">LIVE CONFIG</span></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="status-row"><span>IBM Granite configuration</span><strong style="color:{"#78e69a" if is_configured() else "#f0c36b"}">{"Configured" if is_configured() else "Needs setup"}</strong></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="status-row"><span>Government PDF retrieval</span><strong style="color:{"#78e69a" if retriever else "#f0c36b"}">{"Ready" if retriever else "Unavailable"}</strong></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="status-row"><span>Indexed passages</span><strong>{len(retriever.passages) if retriever else 0}</strong></div>', unsafe_allow_html=True)
-            st.caption("Scheme answers are limited to evidence retrieved from the documents bundled with this project.")
+    _tool_cards = [
+        ("✧", "AI Copilot",
+         "Ask free-form questions about your business and get AI-powered guidance.",
+         "AI Copilot"),
+        ("▣", "Business Profile",
+         "Build a factual digital description for your stall that customers can read.",
+         "Business Profile"),
+        ("⌖", "Local SEO",
+         "Generate keywords, listing text and visibility actions for local search.",
+         "Local SEO"),
+        ("✎", "Promo Studio",
+         "Create ready-to-share WhatsApp and social media promotional messages.",
+         "Promo Studio"),
+        ("✓", "Digitalization Checklist",
+         "Get a practical step-by-step plan for taking your business digital.",
+         "Digitalization Checklist"),
+        ("⌂", "Government Schemes",
+         "Ask questions grounded in official PDF documents on PM SVANidhi, Udyam, GeM and BHIM.",
+         "Government Schemes"),
+        ("▤", "Knowledge Sources",
+         "Browse and inspect the government PDFs indexed as reference material.",
+         "Knowledge Sources"),
+    ]
+
+    # Render cards in rows of 4 then 3 to avoid awkward single-card rows
+    row1, row2 = _tool_cards[:4], _tool_cards[4:]
+    for row in (row1, row2):
+        cols = st.columns(len(row), gap="small")
+        for col, (ico, title, desc, target) in zip(cols, row):
+            with col:
+                st.markdown(
+                    f'<div class="quick-card">'
+                    f'<div class="q-icon">{ico}</div>'
+                    f'<h3>{title}</h3>'
+                    f'<p>{desc}</p>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                st.button(
+                    "Open →",
+                    key=f"dash_{target}",
+                    use_container_width=True,
+                    on_click=navigate_to,
+                    args=(target,),
+                )
+
+    # ── System status ────────────────────────────────────────────────────
+    st.markdown('<div class="overview-section-title">System status</div>', unsafe_allow_html=True)
+    stat_cols = st.columns([1.6, 1, 1, 1], gap="small")
+    with stat_cols[0]:
+        ai_color = "#78e69a" if is_configured() else "#f0c36b"
+        ai_label = "IBM Granite — configured" if is_configured() else "IBM Granite — not configured"
+        st.markdown(
+            f'<div class="metric"><div class="metric-label">AI ENGINE</div>'
+            f'<div style="font-size:12px;font-weight:700;margin-top:8px;color:{ai_color}">'
+            f'{ai_label}</div></div>',
+            unsafe_allow_html=True,
+        )
+    with stat_cols[1]:
+        rag_color = "#78e69a" if retriever else "#f0c36b"
+        rag_label = "Ready" if retriever else "Unavailable"
+        st.markdown(
+            f'<div class="metric"><div class="metric-label">REFERENCE LIBRARY</div>'
+            f'<div class="metric-value" style="color:{rag_color}">{rag_label}</div>'
+            f'<div class="metric-note">{source_count} PDF sources indexed</div></div>',
+            unsafe_allow_html=True,
+        )
+    with stat_cols[2]:
+        st.markdown(
+            '<div class="metric"><div class="metric-label">LANGUAGES</div>'
+            '<div class="metric-value">3</div>'
+            '<div class="metric-note">English · Tamil · Hindi</div></div>',
+            unsafe_allow_html=True,
+        )
+    with stat_cols[3]:
+        passage_count = len(retriever.passages) if retriever else 0
+        st.markdown(
+            f'<div class="metric"><div class="metric-label">INDEXED PASSAGES</div>'
+            f'<div class="metric-value">{passage_count}</div>'
+            f'<div class="metric-note">Deduplicated chunks</div></div>',
+            unsafe_allow_html=True,
+        )
 
 elif page == "Business Profile":
     st.markdown('<div class="feature-card"><div class="eyebrow">BUSINESS IDENTITY</div><h3>Build your digital business profile</h3><div class="panel-caption">Add the details customers need to understand what you sell and where to find you. Your saved details are used by the AI tools across VendorSaathi.</div></div>', unsafe_allow_html=True)
@@ -1226,9 +1948,37 @@ elif page == "Local SEO":
             st.session_state.pop("local_seo_result", None)
             st.session_state.pop("local_seo_validation_issues", None)
             st.session_state.pop("local_seo_rejected_draft", None)
+
+            MAX_AUTO_RETRIES = 2
             result = run_generation(build_local_seo_prompt(vendor))
             if result:
                 is_valid, issues = validate_local_seo_output(result, vendor)
+                # Auto-retry loop: pass the exact validation errors back to the model
+                _attempts = 0
+                while not is_valid and _attempts < MAX_AUTO_RETRIES:
+                    _attempts += 1
+                    issues_text = "\n".join(f"- {issue}" for issue in issues)
+                    correction_prompt = build_local_seo_prompt(vendor)
+                    correction_prompt += (
+                        f"\n\n---\nCORRECTION REQUIRED (attempt {_attempts} of {MAX_AUTO_RETRIES}):\n"
+                        f"The previous draft was rejected because it contained unsupported claims.\n"
+                        f"Specific problems found:\n{issues_text}\n\n"
+                        "Write a new SEO kit that fixes every problem listed above. "
+                        "Replace every rejected phrase with a factual description using only "
+                        "the actual business name, vendor type, location, and exact products "
+                        "from the vendor profile. "
+                        "Do NOT use trust claims, satisfaction claims, popularity claims, "
+                        "experience claims, superiority claims, or any form of unverified "
+                        "promotional language. Describe the business plainly and factually.\n"
+                        "---\n"
+                    )
+                    corrected = run_generation(correction_prompt)
+                    if corrected:
+                        result = corrected
+                        is_valid, issues = validate_local_seo_output(result, vendor)
+                    else:
+                        break  # generation failed, stop retrying
+
                 if is_valid:
                     st.session_state["local_seo_result"] = result
                 else:
@@ -1237,31 +1987,39 @@ elif page == "Local SEO":
 
         if st.session_state.get("local_seo_validation_issues"):
             st.error(
-                "❌ **Draft rejected** — The generated content contains unsupported claims "
-                "not confirmed by your Business Profile."
+                "❌ **Draft rejected** — The generated content still contains unsupported claims "
+                "after automatic correction attempts. The AI could not remove all prohibited phrases."
             )
-            st.markdown("**Specific issues found:**")
+            st.markdown("**Remaining issues:**")
             for issue in st.session_state["local_seo_validation_issues"]:
                 st.write(f"- {issue}")
-            
+
             st.info(
                 "**What you can do:**\n\n"
-                "1. If these details are accurate, update your Business Profile first, then generate again\n"
-                "2. Click 'Regenerate with corrections' below to instruct the AI to remove unsupported claims"
+                "1. Click **'Regenerate with corrections'** below — this sends the exact issues to the AI for another attempt.\n"
+                "2. If a claim is actually true for your business (e.g. you do have many years of experience), "
+                "add that information to your **Business Profile** first, then generate again.\n"
+                "3. The validation rules are intentional — they prevent fabricated claims from appearing in your SEO content."
             )
             
             if st.button("🔄 Regenerate with corrections", type="primary", key="regenerate_local_seo_corrected"):
-                # Build a correction-focused prompt
+                # Build a correction-focused prompt with explicit forbidden phrase list
                 issues_text = "\n".join(f"- {issue}" for issue in st.session_state["local_seo_validation_issues"])
                 correction_prompt = build_local_seo_prompt(vendor)
                 correction_prompt += (
-                    f"\n\nIMPORTANT: The previous draft was rejected for these reasons:\n"
-                    f"{issues_text}\n\n"
-                    "Generate a new version that strictly avoids these specific issues. "
-                    "Remove any unsupported claims, unverified products, or invented details. "
-                    "Use only facts explicitly present in the vendor profile above."
+                    f"\n\n---\nCORRECTION REQUIRED:\n"
+                    f"The previous draft was rejected because it contained unsupported claims.\n"
+                    f"Specific problems found:\n{issues_text}\n\n"
+                    "Write a new SEO kit that fixes every problem listed above. "
+                    "Replace every rejected phrase with a factual description using only "
+                    "the actual business name, vendor type, location, and exact products "
+                    "from the vendor profile. "
+                    "Do NOT use trust claims, satisfaction claims, popularity claims, "
+                    "experience claims, superiority claims, or any form of unverified "
+                    "promotional language. Describe the business plainly and factually.\n"
+                    "---\n"
                 )
-                
+
                 st.session_state.pop("local_seo_validation_issues", None)
                 st.session_state.pop("local_seo_rejected_draft", None)
                 result = run_generation(correction_prompt)
@@ -1469,7 +2227,7 @@ elif page == "AI Copilot":
 
         for message in st.session_state["copilot_messages"]:
             with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+                st.markdown(_clean_response(message["content"]))
                 if message.get("source"):
                     st.caption(message["source"])
 
@@ -1493,7 +2251,7 @@ elif page == "AI Copilot":
                     source_note = f"Source: {hits[0]['source']} · PDF page {hits[0]['page']}"
                     safe = get_safe_scheme_answer(question.strip(), hits)
                     if safe is not None:
-                        answer = safe
+                        answer = _clean_response(safe)
                     else:
                         generated_answer = run_generation(
                             build_scheme_qa_prompt(
@@ -1509,7 +2267,7 @@ elif page == "AI Copilot":
                                 generated_answer, question.strip(), retrieved_passages
                             )
                             if is_valid:
-                                answer = generated_answer
+                                answer = _clean_response(generated_answer)
                             else:
                                 # Return a safe insufficient-evidence message
                                 answer = (
@@ -1548,28 +2306,28 @@ elif page == "AI Copilot":
                     _fq = _sess["first_question"]
                     _title = _fq[:55] if _fq else "New conversation"
                     _date = (_sess["created_at"] or "")[:10]
-                    
-                if _is_active:
-                    st.button(
-                        f"● {_title}",
-                        key=f"active_session_{_sess['id']}",
-                        use_container_width=True,
-                        disabled=True,
-                    )
-                else:
-                    if st.button(
-                        f"○ {_title}",
-                        key=f"load_session_{_sess['id']}",
-                        use_container_width=True,
-                    ):
-                        _owner = get_chat_session_owner(_sess["id"])
-                        if _owner == _copilot_email:
-                            st.session_state["_copilot_session_id"] = _sess["id"]
-                            st.session_state["copilot_messages"] = (
-                                load_chat_session_messages(_sess["id"])
-                            )
-                            st.rerun()
-                st.caption(_date)
+
+                    if _is_active:
+                        st.button(
+                            f"● {_title}",
+                            key=f"active_session_{_sess['id']}",
+                            use_container_width=True,
+                            disabled=True,
+                        )
+                    else:
+                        if st.button(
+                            f"○ {_title}",
+                            key=f"load_session_{_sess['id']}",
+                            use_container_width=True,
+                        ):
+                            _owner = get_chat_session_owner(_sess["id"])
+                            if _owner == _copilot_email:
+                                st.session_state["_copilot_session_id"] = _sess["id"]
+                                st.session_state["copilot_messages"] = (
+                                    load_chat_session_messages(_sess["id"])
+                                )
+                                st.rerun()
+                    st.caption(_date)
             else:
                 st.caption("No saved conversations yet.")
 

@@ -53,13 +53,53 @@ _UNSUPPORTED_PATTERNS = (
     (r"\b(deliver(y|ies)|home delivery|online order(ing)?)\b", "unverified service claim"),
 )
 
+# Languages for which the output will be in a non-Latin script.  For these
+# languages the identity checks (name / category / location) cannot rely on
+# exact English-string matching because Granite translates or transliterates
+# the saved values.  We perform a best-effort Latin-script presence check
+# instead of a hard rejection (see _check_identity_non_english for details).
+_NON_ENGLISH_LANGUAGES = frozenset({"Tamil", "Hindi"})
+
+
+def _has_latin_substring(needle: str, haystack: str) -> bool:
+    """Return True if the normalised *needle* appears anywhere in *haystack*.
+
+    Both are casefold-normalised before comparison.  This is used for the
+    best-effort check on non-English output where Granite may keep proper
+    nouns in their original Latin form inside an otherwise Tamil/Hindi profile.
+    """
+    return _norm_field(needle) in _norm_field(haystack)
+
 
 def validate_business_profile_output(text: str, vendor: dict):
-    """Return (is_valid, issues); only blocks clear unsupported-claim patterns."""
+    """Return (is_valid, issues); only blocks clear unsupported-claim patterns.
+
+    For English profiles all three identity checks (name, category, location)
+    are hard requirements — the profile is rejected if any is absent.
+
+    For Tamil and Hindi profiles the unsupported-claim patterns still apply
+    (they are English-only regexes so they will not fire on non-Latin script,
+    but they will catch any stray English promotional phrases).  The identity
+    checks become best-effort: if the saved Latin-script value still appears
+    in the output (Granite often keeps proper nouns in their original form)
+    the check passes silently; if the value is absent the check is *skipped*
+    rather than raising an issue, because the model may have legitimately
+    transliterated or translated it in accordance with the prompt instructions.
+    The empty-text check applies for all languages.
+    """
     if not isinstance(text, str) or not text.strip():
         return False, ["The generated profile is empty. Please generate it again."]
 
+    language = (vendor.get("language") or "English").strip()
+    is_non_english = language in _NON_ENGLISH_LANGUAGES
+
     issues = []
+
+    # ── Unsupported-claim patterns (apply for all languages) ──────────────
+    # These are English-only regex patterns.  On Tamil/Hindi output they will
+    # not match non-Latin script and will not produce false positives.  They
+    # will still catch any stray English promotional phrases that Granite might
+    # insert alongside translated text.
     for pattern, label in _UNSUPPORTED_PATTERNS:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
@@ -68,41 +108,62 @@ def validate_business_profile_output(text: str, vendor: dict):
                 f"Matched wording: '{match.group(0)}'."
             )
 
-    # Exact profile facts should not be fabricated or silently replaced.
-    # Name and location: normalise whitespace and punctuation spacing before
-    # checking, so that saved values like "Rocky  textiles" (double space) or
-    # "Porur , Chennai" (space before comma) still match Granite output that
-    # normalises those to "Rocky Textiles" / "Porur, Chennai".
+    # ── Identity checks ───────────────────────────────────────────────────
+    # For English: hard requirement — reject if absent.
+    # For Tamil / Hindi: best-effort Latin presence check — skip (not fail)
+    # if the saved Latin form is not found, because the model is allowed to
+    # transliterate or translate proper nouns per the prompt instructions.
     text_norm = _norm_field(text)
 
     name = (vendor.get("business_name") or "").strip()
-    if name and _norm_field(name) not in text_norm:
-        issues.append("The generated profile does not include the saved business name.")
+    if name:
+        name_present = _norm_field(name) in text_norm
+        if not name_present:
+            if not is_non_english:
+                issues.append(
+                    "The generated profile does not include the saved business name."
+                )
+            # For non-English: absence is acceptable (transliteration/translation).
 
     # Category: require at least one significant category token to appear as a
-    # whole word *outside* the business name.  Checking outside the name prevents
-    # a category word that coincidentally forms part of the business name (e.g.
-    # "textiles" in "Rocky Textiles") from satisfying the check on its own.
-    # Requiring only one token (rather than all) tolerates natural reformulations
-    # such as "clothing store" for "Clothing & Textiles" while still catching
-    # outputs that contain no category-related word at all.
+    # whole word *outside* the business name.  For non-English output the token
+    # regex uses simple casefold matching without \b word-boundary anchors near
+    # non-Latin characters, to avoid false failures from Unicode boundary issues.
     category = (vendor.get("vendor_type") or "").strip()
     if category:
         tokens = _category_tokens(category)
-        # Build a version of the text with the (normalised) business name removed,
-        # so we check for category words in the descriptive part of the sentence.
         text_cf = text.casefold()
         text_without_name = text_cf
         if name:
             text_without_name = text_cf.replace(_norm_field(name), " ", 1)
-        if tokens and not any(
-            re.search(r"\b" + re.escape(tok) + r"\b", text_without_name)
-            for tok in tokens
-        ):
-            issues.append("The generated profile does not include the saved business category.")
+
+        if is_non_english:
+            # Best-effort: check if any token appears as a Latin substring
+            # anywhere in the output (without word-boundary anchors, which
+            # break on non-Latin Unicode characters).
+            category_present = tokens and any(
+                tok in text_without_name for tok in tokens
+            )
+            # Absence is acceptable for non-English: skip rather than reject.
+        else:
+            # English: strict word-boundary check.
+            category_present = tokens and any(
+                re.search(r"\b" + re.escape(tok) + r"\b", text_without_name)
+                for tok in tokens
+            )
+            if not category_present:
+                issues.append(
+                    "The generated profile does not include the saved business category."
+                )
 
     location = (vendor.get("location") or "").strip()
-    if location and _norm_field(location) not in text_norm:
-        issues.append("The generated profile does not include the saved location.")
+    if location:
+        location_present = _norm_field(location) in text_norm
+        if not location_present:
+            if not is_non_english:
+                issues.append(
+                    "The generated profile does not include the saved location."
+                )
+            # For non-English: absence is acceptable.
 
     return not issues, issues
