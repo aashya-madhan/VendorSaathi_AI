@@ -13,9 +13,16 @@ import streamlit as st
 from llm import generate, is_configured, configuration_message
 from rag import LocalRetriever
 from prompts import (
-    build_profile_prompt, build_promo_prompt,
-    build_checklist_prompt, build_scheme_qa_prompt,
+    build_profile_prompt,
+    build_promo_prompt,
+    build_checklist_prompt,
+    build_scheme_qa_prompt,
+    build_local_seo_prompt,
 )
+from business_profile_validation import validate_business_profile_output
+from local_seo_validation import validate_local_seo_output
+from scheme_answer_validation import validate_scheme_answer
+from checklist_validation import validate_checklist_output
 
 st.set_page_config(
     page_title="VendorSaathi AI | Street Vendor Growth Copilot",
@@ -792,9 +799,30 @@ def validate_checklist(text: str):
 def get_safe_scheme_answer(question, hits):
     q = question.lower()
     evidence = " ".join(hit["text"] for hit in hits).lower()
+    
+    # Udyam fee question with explicit free-registration evidence
     asks_udyam_fee = "udyam" in q and any(t in q for t in ("free","fee","charge","cost","price"))
-    if asks_udyam_fee and not any(p in evidence for p in ("registration is free","registration fee is nil","no registration fee","without any fee","free of charge","no fee is charged")):
-        return ("The retrieved source identifies the official Udyam Registration Portal as an authorized registration channel. However, it does not explicitly establish whether registration is free. Please verify current fee information on the official Udyam portal.")
+    if asks_udyam_fee:
+        # Check for multiple variations of "registration is free" statement
+        has_free_evidence = any(p in evidence for p in (
+            "totally free",
+            "registration is free",
+            "registration fee is nil",
+            "no registration fee",
+            "without any fee",
+            "free of charge",
+            "no fee is charged",
+            "no costs or fees",
+            "no cost or fee",
+        ))
+        
+        if not has_free_evidence:
+            return (
+                "The retrieved source identifies the official Udyam Registration Portal as an authorized "
+                "registration channel. However, it does not explicitly establish whether registration is free. "
+                "Please verify current fee information on the official Udyam portal."
+            )
+    
     asks_gem_add = "gem" in q and "product" in q and any(t in q for t in ("add","adding","create","creating","list","listing","catalog"))
     if asks_gem_add and "catalog" in evidence and "add new product" in evidence:
         return ("According to the retrieved GeM seller-manual passage:\\n\\n1. Open the Catalog tab.\\n2. Select Add New Product from the dropdown menu.\\n\\nThe available passage does not establish subsequent submission or approval steps. Verify the current workflow on GeM.")
@@ -817,7 +845,7 @@ with st.sidebar:
     <div class="brandtag">YOUR DIGITAL BUSINESS PARTNER</div></div></div>
     """, unsafe_allow_html=True)
     st.markdown('<div class="eyebrow">WORKSPACE NAVIGATION</div>', unsafe_allow_html=True)
-    nav_pages = ["Overview","AI Copilot","Business Profile","Promo Studio","Digitalization Checklist","Government Schemes","Knowledge Sources"]
+    nav_pages = ["Overview","AI Copilot","Business Profile","Local SEO", "Promo Studio","Digitalization Checklist","Government Schemes","Knowledge Sources"]
     if "selected_page" not in st.session_state:
         st.session_state["selected_page"] = "Overview"
     page = st.radio(
@@ -829,6 +857,7 @@ with st.sidebar:
             "Overview":"⌂   Overview",
             "AI Copilot":"✧   AI Copilot",
             "Business Profile":"▣   Business Profile",
+            "Local SEO": "⌖   Local SEO",
             "Promo Studio":"✎   Promo Studio",
             "Digitalization Checklist":"✓   Digitalization Checklist",
             "Government Schemes":"⌂   Government Schemes",
@@ -925,10 +954,11 @@ if page == "Overview":
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="overview-section-title">Your VendorSaathi toolkit</div>', unsafe_allow_html=True)
-    tool_cols = st.columns(4)
+    tool_cols = st.columns(5)
     tool_cards = [
         ("▣","Business Profile","Create a digital identity for your stall.","Business Profile"),
         ("✦","Promo Studio","Prepare WhatsApp and social promotions.","Promo Studio"),
+        ("⌖", "Local SEO", "Improve your local online visibility.", "Local SEO"),
         ("✓","Digital Checklist","Plan your next digital steps.","Digitalization Checklist"),
         ("⌂","Government Help","Explore information from reference PDFs.","Government Schemes"),
     ]
@@ -1020,11 +1050,26 @@ elif page == "Business Profile":
         st.caption("Products / services: " + (vendor.get("products") or "Not added yet"))
         if st.button("✦ Generate business profile", type="primary", key="generate_business_profile"):
             if guard_vendor():
+                st.session_state.pop("profile_result", None)
+                st.session_state.pop("profile_validation_issues", None)
                 result = run_generation(build_profile_prompt(vendor))
                 if result:
-                    st.session_state["profile_result"] = result
+                    is_valid, issues = validate_business_profile_output(result, vendor)
+                    if is_valid:
+                        st.session_state["profile_result"] = result
+                    else:
+                        st.session_state["profile_validation_issues"] = issues
     else:
         st.info("Add your business details above to create a customer-ready profile.")
+
+    if st.session_state.get("profile_validation_issues"):
+        st.warning(
+            "This profile was not saved, displayed or made downloadable because "
+            "it contains claims or details not confirmed by your Business Profile. "
+            "Please regenerate after checking your saved details."
+        )
+        for issue in st.session_state["profile_validation_issues"]:
+            st.write(f"- {issue}")
 
     if st.session_state.get("profile_result"):
         st.markdown("#### Your generated profile")
@@ -1139,6 +1184,110 @@ elif page == "Promo Studio":
             else:
                 st.caption("No saved promotions yet. Generate a message and click ★ Save to library.")
 
+
+elif page == "Local SEO":
+    st.markdown(
+        '<div class="feature-card"><div class="eyebrow">'
+        'LOCAL BUSINESS VISIBILITY</div><h3>Help nearby customers '
+        'discover your business</h3><div class="panel-caption">'
+        'Generate location-aware keywords, business listing content '
+        'and practical local visibility suggestions.</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    vendor = st.session_state.get("vendor", {})
+
+    st.info(
+        "Suggestions are AI-generated. Keywords are not verified "
+        "search-volume data, and no search ranking is guaranteed."
+    )
+
+    if not vendor.get("business_name"):
+        st.warning("Please complete your Business Profile first.")
+    elif not vendor.get("location", "").strip():
+        st.warning("Add your city and area to your Business Profile first.")
+    elif not vendor.get("products", "").strip():
+        st.warning("Add your products or services to your Business Profile first.")
+    else:
+        st.markdown("#### Business details")
+        st.write(
+            f"**Business:** {vendor['business_name']}  \n"
+            f"**Category:** {vendor.get('vendor_type', 'Not specified')}  \n"
+            f"**Location:** {vendor['location']}  \n"
+            f"**Products:** {vendor['products']}"
+        )
+
+        if st.button(
+            "Generate local SEO kit",
+            type="primary",
+            key="generate_local_seo",
+        ):
+            # Do not leave an older draft visible if this generation fails validation.
+            st.session_state.pop("local_seo_result", None)
+            st.session_state.pop("local_seo_validation_issues", None)
+            st.session_state.pop("local_seo_rejected_draft", None)
+            result = run_generation(build_local_seo_prompt(vendor))
+            if result:
+                is_valid, issues = validate_local_seo_output(result, vendor)
+                if is_valid:
+                    st.session_state["local_seo_result"] = result
+                else:
+                    st.session_state["local_seo_validation_issues"] = issues
+                    st.session_state["local_seo_rejected_draft"] = result
+
+        if st.session_state.get("local_seo_validation_issues"):
+            st.error(
+                "❌ **Draft rejected** — The generated content contains unsupported claims "
+                "not confirmed by your Business Profile."
+            )
+            st.markdown("**Specific issues found:**")
+            for issue in st.session_state["local_seo_validation_issues"]:
+                st.write(f"- {issue}")
+            
+            st.info(
+                "**What you can do:**\n\n"
+                "1. If these details are accurate, update your Business Profile first, then generate again\n"
+                "2. Click 'Regenerate with corrections' below to instruct the AI to remove unsupported claims"
+            )
+            
+            if st.button("🔄 Regenerate with corrections", type="primary", key="regenerate_local_seo_corrected"):
+                # Build a correction-focused prompt
+                issues_text = "\n".join(f"- {issue}" for issue in st.session_state["local_seo_validation_issues"])
+                correction_prompt = build_local_seo_prompt(vendor)
+                correction_prompt += (
+                    f"\n\nIMPORTANT: The previous draft was rejected for these reasons:\n"
+                    f"{issues_text}\n\n"
+                    "Generate a new version that strictly avoids these specific issues. "
+                    "Remove any unsupported claims, unverified products, or invented details. "
+                    "Use only facts explicitly present in the vendor profile above."
+                )
+                
+                st.session_state.pop("local_seo_validation_issues", None)
+                st.session_state.pop("local_seo_rejected_draft", None)
+                result = run_generation(correction_prompt)
+                if result:
+                    is_valid, issues = validate_local_seo_output(result, vendor)
+                    if is_valid:
+                        st.session_state["local_seo_result"] = result
+                        st.rerun()
+                    else:
+                        st.session_state["local_seo_validation_issues"] = issues
+                        st.session_state["local_seo_rejected_draft"] = result
+                        st.rerun()
+
+        if st.session_state.get("local_seo_result"):
+            st.markdown("#### Your local SEO kit")
+            with st.container(border=True):
+                st.markdown(st.session_state["local_seo_result"])
+
+            st.download_button(
+                "Download local SEO kit",
+                st.session_state["local_seo_result"],
+                "vendor_local_seo_kit.txt",
+                key="download_local_seo",
+            )
+
+
 elif page == "Digitalization Checklist":
     st.markdown('<div class="feature-card"><div class="eyebrow">YOUR NEXT STEPS</div><h3>Your step-by-step digitalization plan</h3><div class="panel-caption">Get practical next steps based on your business type and the areas you want to improve.</div></div>', unsafe_allow_html=True)
     st.info("This is general AI-generated guidance, not legal or financial advice. Applicability of registrations and licences depends on your circumstances.")
@@ -1149,18 +1298,49 @@ elif page == "Digitalization Checklist":
             current_tools = st.multiselect("Which of these do you already use?", ["UPI / QR payments", "WhatsApp Business", "Google Business Profile", "Social media page", "Online marketplace"], help="Select all that apply. It is okay to leave this blank.")
             extra_context = st.text_area("Anything else we should consider? (optional)", placeholder="e.g. I run my stall alone and have limited time", height=70)
             checklist_submitted = st.form_submit_button("✦ Generate my checklist", type="primary", use_container_width=True)
+    
+    if st.session_state.get("checklist_validation_issues"):
+        st.error(
+            "❌ **Checklist rejected** — The generated checklist contains unsuitable recommendations "
+            "or unsupported claims."
+        )
+        st.markdown("**Specific issues found:**")
+        for issue in st.session_state["checklist_validation_issues"]:
+            st.write(f"- {issue}")
+        
+        st.info(
+            "**What happened:**\n\n"
+            "The AI generated recommendations that don't match your business profile or made assumptions "
+            "about services/tools you haven't confirmed. Click 'Generate my checklist' again for a new attempt."
+        )
+    
     if checklist_submitted:
         if guard_vendor():
+            # Extract declared tools from multiselect
+            declared_tools = current_tools if current_tools else []
+            
+            # Build context including what tools they already have
             context = "Vendor priority: " + priority + ".\nTools already used: " + (", ".join(current_tools) if current_tools else "Not specified") + ".\nAdditional context: " + (extra_context.strip() or "Not provided")
+            
+            # Clear previous results
+            st.session_state.pop("checklist_result", None)
+            st.session_state.pop("checklist_validation_issues", None)
+            
             result = run_generation(build_checklist_prompt(vendor, context=context))
             if result:
-                valid, reason = validate_checklist(result)
-                if valid:
-                    st.session_state["checklist_result"] = result
-                    st.session_state["checklist_priority"] = priority
-                    st.session_state["checklist_completed"] = [False] * len(parse_checklist_steps(result))
+                # First validate format (5-7 steps, complete)
+                format_valid, format_reason = validate_checklist(result)
+                if not format_valid:
+                    st.warning(format_reason)
                 else:
-                    st.warning(reason)
+                    # Then validate content (factual grounding)
+                    content_valid, content_issues = validate_checklist_output(result, vendor, declared_tools)
+                    if content_valid:
+                        st.session_state["checklist_result"] = result
+                        st.session_state["checklist_priority"] = priority
+                        st.session_state["checklist_completed"] = [False] * len(parse_checklist_steps(result))
+                    else:
+                        st.session_state["checklist_validation_issues"] = content_issues
     if st.session_state.get("checklist_result"):
         st.markdown('<div class="card-heading"><span>Your personalized action plan</span><span class="card-chip">5–7 STEPS</span></div>', unsafe_allow_html=True)
         st.caption("Priority: " + st.session_state.get("checklist_priority", "Your business"))
@@ -1207,14 +1387,38 @@ elif page == "Government Schemes":
                 st.warning("No sufficiently relevant evidence was found in the available documents. No AI answer was generated.")
             else:
                 context = retriever.format_context(question.strip(), top_k=3)
+                retrieved_passages = [hit["text"] for hit in hits]
                 safe = get_safe_scheme_answer(question.strip(), hits)
                 answer = safe if safe is not None else run_generation(build_scheme_qa_prompt(question.strip(), context, qa_language, vendor))
                 if answer:
-                    st.session_state["scheme_answer"] = answer
-                    st.session_state["scheme_hits"] = hits
-                    st.session_state["scheme_question"] = question.strip()
+                    # Validate the generated answer for unsupported claims
+                    is_valid, validation_issues = validate_scheme_answer(answer, question.strip(), retrieved_passages, hits)
+                    if is_valid:
+                        st.session_state["scheme_answer"] = answer
+                        st.session_state["scheme_hits"] = hits
+                        st.session_state["scheme_question"] = question.strip()
+                        st.session_state.pop("scheme_validation_issues", None)  # Clear any old issues
+                    else:
+                        # Clear old answer to prevent displaying stale successful answer
+                        st.session_state.pop("scheme_answer", None)
+                        st.session_state.pop("scheme_question", None)
+                        st.warning(
+                            "The generated answer was not saved or displayed because "
+                            "it contains claims not supported by the retrieved evidence. "
+                            "Please try rephrasing your question or check the evidence sources below."
+                        )
+                        st.session_state["scheme_validation_issues"] = validation_issues
+                        st.session_state["scheme_hits"] = hits
+    if st.session_state.get("scheme_validation_issues"):
+        st.error("Validation issues detected in the generated answer:")
+        for issue in st.session_state["scheme_validation_issues"]:
+            st.write(f"- {issue}")
+        st.caption("The answer was blocked because it does not meet accuracy requirements.")
+    
     if st.session_state.get("scheme_answer"):
         st.markdown('<div class="card-heading"><span>Answer</span><span class="card-chip">GROUNDED RESPONSE</span></div>', unsafe_allow_html=True)
+        if st.session_state.get("scheme_question"):
+            st.caption(f"Question: {st.session_state['scheme_question']}")
         with st.container(border=True):
             st.markdown(st.session_state["scheme_answer"])
         st.download_button("Download answer", st.session_state["scheme_answer"], "scheme_information_answer.txt", key="download_scheme_answer")
@@ -1285,16 +1489,37 @@ elif page == "AI Copilot":
                     answer = "I couldn't find sufficiently relevant evidence in the available reference documents, so I won't guess. Try asking about a topic covered by the uploaded PDFs."
                     source_note = ""
                 else:
+                    retrieved_passages = [hits[0]["text"]]
                     source_note = f"Source: {hits[0]['source']} · PDF page {hits[0]['page']}"
                     safe = get_safe_scheme_answer(question.strip(), hits)
-                    answer = safe if safe is not None else run_generation(
-                        build_scheme_qa_prompt(
-                            question.strip(),
-                            retriever.format_context(question.strip(), top_k=1),
-                            vendor.get("language","English"),
-                            vendor,
+                    if safe is not None:
+                        answer = safe
+                    else:
+                        generated_answer = run_generation(
+                            build_scheme_qa_prompt(
+                                question.strip(),
+                                retriever.format_context(question.strip(), top_k=1),
+                                vendor.get("language","English"),
+                                vendor,
+                            )
                         )
-                    ) or "I couldn't generate an answer. Please check the IBM watsonx.ai connection and try again."
+                        if generated_answer:
+                            # Validate generated answer for unsupported claims
+                            is_valid, validation_issues = validate_scheme_answer(
+                                generated_answer, question.strip(), retrieved_passages
+                            )
+                            if is_valid:
+                                answer = generated_answer
+                            else:
+                                # Return a safe insufficient-evidence message
+                                answer = (
+                                    "I found some relevant information but cannot generate a reliable answer "
+                                    "from the retrieved passages without making unsupported claims. "
+                                    "Please verify the information on the official portal or rephrase your question."
+                                )
+                                source_note = f"Validation blocked · {source_note}"
+                        else:
+                            answer = "I couldn't generate an answer. Please check the IBM watsonx.ai connection and try again."
             st.session_state["copilot_messages"].append({"role":"assistant","content":answer,"source":source_note})
             append_chat_messages(
                 st.session_state["_copilot_session_id"],
@@ -1314,28 +1539,40 @@ elif page == "AI Copilot":
                 st.session_state["copilot_messages"] = []
                 st.rerun()
             _recent_sessions = load_recent_chat_sessions(_copilot_email, limit=5)
+            
             if _recent_sessions:
                 for _sess in _recent_sessions:
-                    _is_active = (_sess["id"] == st.session_state.get("_copilot_session_id"))
-                    _icon = "◉" if _is_active else "○"
-                    _fq = _sess["first_question"]
-                    _title = escape(_fq[:55]) if _fq else "New conversation"
-                    _date = (_sess["created_at"] or "")[:10]
-                    st.markdown(
-                        f'<div class="step"><div class="step-icon">{_icon}</div>'
-                        f'<div><div class="step-title">{_title}</div>'
-                        f'<div class="step-caption">{escape(_date)}</div></div></div>',
-                        unsafe_allow_html=True,
+                    _is_active = (
+                        _sess["id"] == st.session_state.get("_copilot_session_id")
                     )
-                    if not _is_active:
-                        if st.button("Load", key=f"load_session_{_sess['id']}", use_container_width=True):
-                            _owner = get_chat_session_owner(_sess["id"])
-                            if _owner == _copilot_email:
-                                st.session_state["_copilot_session_id"] = _sess["id"]
-                                st.session_state["copilot_messages"] = load_chat_session_messages(_sess["id"])
-                                st.rerun()
+                    _fq = _sess["first_question"]
+                    _title = _fq[:55] if _fq else "New conversation"
+                    _date = (_sess["created_at"] or "")[:10]
+                    
+                if _is_active:
+                    st.button(
+                        f"● {_title}",
+                        key=f"active_session_{_sess['id']}",
+                        use_container_width=True,
+                        disabled=True,
+                    )
+                else:
+                    if st.button(
+                        f"○ {_title}",
+                        key=f"load_session_{_sess['id']}",
+                        use_container_width=True,
+                    ):
+                        _owner = get_chat_session_owner(_sess["id"])
+                        if _owner == _copilot_email:
+                            st.session_state["_copilot_session_id"] = _sess["id"]
+                            st.session_state["copilot_messages"] = (
+                                load_chat_session_messages(_sess["id"])
+                            )
+                            st.rerun()
+                st.caption(_date)
             else:
                 st.caption("No saved conversations yet.")
+
         with st.container(border=True):
             st.markdown("**Knowledge assistant**")
             st.caption("Responses use the local government-PDF retrieval pipeline.")

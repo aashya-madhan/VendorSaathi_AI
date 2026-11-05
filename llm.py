@@ -97,6 +97,7 @@ def generate(
 
     try:
         from ibm_watsonx_ai.foundation_models.schema import TextChatParameters
+        from ibm_watsonx_ai.wml_client_error import WMLClientError, ApiRequestFailure
 
         client = _get_client()
         params = TextChatParameters(
@@ -116,8 +117,31 @@ def generate(
 
         return None, "watsonx.ai returned an empty or unrecognised response."
 
+    except ApiRequestFailure as exc:
+        # IBM API-level error (rate limit, auth, model access, etc.)
+        # Never expose raw error details that may contain tokens or internal data.
+        error_type = type(exc).__name__
+        # Safe to extract status code if present
+        status_code = getattr(exc, "status_code", None)
+        if status_code == 401:
+            return None, "Authentication failed. Check your IBM Cloud API key."
+        elif status_code == 403:
+            return None, "Access forbidden. Check your project ID and model access permissions."
+        elif status_code == 429:
+            return None, "Rate limit exceeded. Wait a moment and try again."
+        elif status_code and 500 <= status_code < 600:
+            return None, f"IBM watsonx.ai service error (HTTP {status_code}). Try again later."
+        else:
+            return None, f"watsonx.ai API request failed ({error_type}). Check your credentials and project configuration."
+    
+    except WMLClientError as exc:
+        # IBM client-level error (configuration, network, etc.)
+        error_type = type(exc).__name__
+        return None, f"watsonx.ai client error ({error_type}). Check your credentials and network connection."
+    
     except Exception as exc:  # noqa: BLE001
+        # Catch-all for unexpected errors
         # Return only the exception type — never the message body, which may
         # contain credential fragments, request headers, or token values.
         error_type = type(exc).__name__
-        return None, f"watsonx.ai request failed ({error_type}). Check your credentials and project ID."
+        return None, f"Unexpected error during generation ({error_type}). Check your IBM watsonx.ai configuration."
