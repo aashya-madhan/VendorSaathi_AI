@@ -1,0 +1,23 @@
+{
+  "name": "VendorSaathi AI",
+  "project_title": "VendorSaathi AI – Street Vendor Digitalization Agent",
+  "problem_statement": {
+    "number": 29,
+    "title": "Street Vendor Digitalization Agent"
+  },
+  "description": "A Streamlit-based digital business assistance application for street vendors and micro-entrepreneurs.",
+  "application": {
+    "framework": "Streamlit",
+    "entrypoint": "app.py"
+  },
+  "ibm_technology": [
+    "IBM Cloud Lite services",
+    "IBM watsonx.ai",
+    "IBM Granite"
+  ],
+  "repository": "https://github.com/aashya-madhan/VendorSaathi_AI",
+  "deployment": {
+    "platform": "Streamlit Community Cloud",
+    "url": "https://vendorsaathi-ai.streamlit.app"
+  }
+}
