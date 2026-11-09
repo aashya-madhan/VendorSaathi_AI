@@ -5,7 +5,7 @@
 VendorSaathi AI helps street vendors go digital by generating professional business profiles, local SEO content, promotional messages, digitalization checklists, and grounded answers to government scheme queries — all from a single workspace.
 
 ---
-live demo  - https://vendorsaathiai-3vkutcv2g8ly7dsgwv8txg.streamlit.app/
+live demo  - https://vendorsaathi-ai.streamlit.app/
 ## Features
 
 | Tool | What it does |
