@@ -27,6 +27,27 @@ from checklist_validation import (
     validate_checklist_quality,
 )
 
+
+def enforce_local_seo_heading(content, vendor):
+    """Use the exact saved business name and location in the SEO title."""
+    if not content:
+        return content
+    business_name = str(vendor.get("business_name", "")).strip()
+    location = str(vendor.get("location", "")).strip()
+    if not business_name:
+        return content
+    heading = f"# {business_name.upper()}"
+    if location:
+        heading += f" - {location.upper()}"
+
+    markdown_heading = re.search(r"(?m)^\s*#{1,6}\s+.*$", content)
+    if markdown_heading:
+        return content[:markdown_heading.start()] + heading + content[markdown_heading.end():]
+    plain_title = re.search(r"(?m)^\s*[A-Z0-9][A-Z0-9 &.,’'()/-]{2,}\s*$", content)
+    if plain_title:
+        return content[:plain_title.start()] + heading + content[plain_title.end():]
+    return heading + "\n\n" + content
+
 st.set_page_config(
     page_title="VendorSaathi AI | Street Vendor Growth Copilot",
     page_icon="🛍️",
@@ -79,32 +100,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .brandmark  { width:39px; height:39px; flex:0 0 39px; border-radius:12px; background:linear-gradient(145deg,#8df34f,#16a45b); display:grid; place-items:center; color:#07110b !important; font-size:21px; font-weight:900; box-shadow:0 0 22px rgba(53,211,107,.18); }
 .brandname  { font-family:Manrope,sans-serif; font-size:18px; font-weight:800; letter-spacing:-.5px; color:#f4fbf4; }
 .brandtag   { font-size:8px; letter-spacing:1.35px; font-weight:800; color:#829989 !important; margin-top:1px; }
-/* Public landing header: keep the project name below Streamlit's fixed toolbar. */
-.public-brand {
-  display:flex; align-items:center; gap:11px; min-height:58px;
-  margin:2.2rem 0 1rem; padding:8px 0 12px;
-  overflow:visible !important; box-sizing:border-box;
-}
-.public-brand-mark {
-  width:40px; height:40px; flex:0 0 40px; display:grid; place-items:center;
-  border-radius:12px; background:linear-gradient(140deg,#a4f35b,#1aa45a);
-  color:#07110b !important; font-size:21px; font-weight:900;
-}
-.public-brand-copy {
-  min-width:0; display:flex; flex-direction:column; justify-content:center;
-  overflow:visible !important;
-}
-.public-brand-name {
-  display:block; margin:0; padding:0; color:#f4fbf4 !important;
-  font-family:Manrope,sans-serif; font-size:19px; font-weight:800;
-  line-height:1.4 !important; letter-spacing:-.35px; white-space:nowrap;
-}
-.public-brand-name span { color:#a9df72 !important; }
-.public-brand-tag {
-  display:block; margin-top:2px; color:#a5b9aa !important;
-  font-size:9px; font-weight:800; line-height:1.5 !important;
-  letter-spacing:1.15px;
-}
 .eyebrow    { font-size:9px; letter-spacing:1.55px; text-transform:uppercase; color:var(--green) !important; font-weight:800; }
 .page-title { font-family:Manrope,sans-serif; font-size:27px; font-weight:800; letter-spacing:-.9px; line-height:1.2; margin:1px 0 4px; color:var(--text) !important; }
 .subtle     { font-size:13px; color:var(--muted) !important; line-height:1.5; }
@@ -1222,15 +1217,17 @@ if "authenticated" not in st.session_state:
 
 def show_public_nav():
     st.markdown("""
-    <div class="public-brand">
-      <div class="public-brand-mark" aria-hidden="true">✦</div>
-      <div class="public-brand-copy">
-        <span class="public-brand-name">VendorSaathi <span>AI</span></span>
-        <span class="public-brand-tag">YOUR DIGITAL BUSINESS PARTNER</span>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0 18px;">
+      <div style="width:36px;height:36px;border-radius:11px;background:linear-gradient(140deg,#a4f35b,#1aa45a);
+                  color:#07110b;display:grid;place-items:center;font-size:20px;font-weight:900;flex:0 0 36px;">✦</div>
+      <div>
+        <div style="font-family:Manrope,sans-serif;font-size:18px;font-weight:800;color:#f4fbf4;">
+          VendorSaathi <span style="color:#a9df72;">AI</span>
+        </div>
+        <div style="font-size:9px;letter-spacing:1.2px;color:#829989;font-weight:700;">YOUR DIGITAL BUSINESS PARTNER</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
-
 
 def render_home():
     show_public_nav()
@@ -2007,7 +2004,7 @@ elif page == "Local SEO":
                         break  # generation failed, stop retrying
 
                 if is_valid:
-                    st.session_state["local_seo_result"] = result
+                    st.session_state["local_seo_result"] = enforce_local_seo_heading(result, vendor)
                 else:
                     st.session_state["local_seo_validation_issues"] = issues
                     st.session_state["local_seo_rejected_draft"] = result
@@ -2053,7 +2050,7 @@ elif page == "Local SEO":
                 if result:
                     is_valid, issues = validate_local_seo_output(result, vendor)
                     if is_valid:
-                        st.session_state["local_seo_result"] = result
+                        st.session_state["local_seo_result"] = enforce_local_seo_heading(result, vendor)
                         st.rerun()
                     else:
                         st.session_state["local_seo_validation_issues"] = issues
@@ -2228,6 +2225,16 @@ elif page == "Digitalization Checklist":
                 f"Progress: {completed_count}/{total_count} steps completed"
             )
 
+            for step_index, step_text in enumerate(checklist_steps):
+                checked = st.checkbox(
+                    step_text,
+                    value=st.session_state["checklist_completed"][step_index],
+                    key=f"checklist_step_{step_index}",
+                )
+                st.session_state["checklist_completed"][step_index] = checked
+            completed_count = sum(st.session_state["checklist_completed"])
+            st.progress(completed_count / total_count if total_count else 0)
+            st.caption(f"Progress: {completed_count}/{total_count} completed")
         st.download_button(
             "Download checklist", st.session_state["checklist_result"],
             "digitalization_checklist.txt", key="download_checklist"
