@@ -1,314 +1,255 @@
-"""
-Validation for digitalization checklist output.
-
-Blocks recommendations that:
-- Mention products not in vendor profile
-- Assume delivery/online ordering without confirmation
-- Assume payment systems without confirmation
-- Make unsupported customer behavior claims
-- Guarantee revenue/sales outcomes
-"""
-
+"""Validation for digitalization checklist output."""
 import re
-from typing import Tuple, List
+from typing import List, Tuple
 
 
-def validate_checklist_output(checklist: str, vendor: dict, declared_tools: list = None) -> Tuple[bool, List[str]]:
-    """
-    Validate checklist content against vendor profile.
-    
-    Args:
-        checklist: Generated checklist text
-        vendor: Vendor profile dict
-        declared_tools: List of tools user declared they already have
-        
-    Returns:
-        (is_valid, issues) where issues is a list of blocking problems
-    """
+def _normalize(value: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", str(value).lower())).strip()
+
+
+def _singularize_token(token: str) -> str:
+    if len(token) > 4 and token.endswith("ies"):
+        return token[:-3] + "y"
+    if len(token) > 3 and token.endswith(("ches", "shes", "xes", "zes", "sses")):
+        return token[:-2]
+    if len(token) > 3 and token.endswith("s") and not token.endswith(("ss", "us", "is")):
+        return token[:-1]
+    return token
+
+
+def _tokens(value: str) -> List[str]:
+    return [_singularize_token(t) for t in re.findall(r"[a-z0-9]+", _normalize(value))]
+
+
+def _contains_phrase(text: str, phrase: str) -> bool:
+    haystack = " ".join(_tokens(text))
+    needle = " ".join(_tokens(phrase))
+    return bool(needle) and f" {needle} " in f" {haystack} "
+
+
+def validate_checklist_output(checklist: str, vendor: dict,
+                              declared_tools: list = None) -> Tuple[bool, List[str]]:
+    """Return (is_valid, blocking_issues) for a generated checklist."""
     if not isinstance(checklist, str) or not checklist.strip():
         return False, ["Checklist is empty"]
-    
-    issues: List[str] = []
-    checklist_lower = checklist.lower()
-    
-    # Get vendor's actual products
-    vendor_products = vendor.get("products", "").lower().strip()
-    if vendor_products:
-        # Split by common delimiters
-        actual_products = set()
-        for product in re.split(r'[,;&]+|\band\b', vendor_products):
-            product = product.strip()
-            if len(product) > 2:  # Ignore very short fragments
-                actual_products.add(product)
-    else:
-        actual_products = set()
-    
-    declared_tools = declared_tools or []
-    declared_tools_lower = [t.lower() for t in declared_tools]
-    
-    # Check for invented products
-    issues.extend(_check_invented_products(checklist_lower, actual_products, vendor))
-    
-    # Check for assumed services
-    issues.extend(_check_assumed_services(checklist_lower, vendor, declared_tools_lower))
-    
-    # Check for customer behavior claims
-    issues.extend(_check_customer_behavior_claims(checklist_lower))
-    
-    # Check for outcome guarantees
-    issues.extend(_check_outcome_guarantees(checklist_lower))
-    
-    # Check for assumed tools/platforms
-    issues.extend(_check_assumed_tools(checklist_lower, declared_tools_lower))
-    
-    return (len(issues) == 0, issues)
+    if not isinstance(vendor, dict):
+        return False, ["Vendor profile must be a dictionary"]
 
-
-def _check_invented_products(checklist: str, actual_products: set, vendor: dict) -> List[str]:
-    """Check if checklist mentions products not in vendor profile."""
+    declared = {_normalize(t) for t in (declared_tools or []) if str(t).strip()}
     issues = []
-    
-    # Common product examples that might be invented
-    # This is not exhaustive - the prompt should prevent invention
-    potential_products = [
-        'avocado', 'fig', 'dragonfruit', 'kiwi', 'pomegranate',
-        'quinoa', 'chia', 'exotic', 'imported', 'organic',
-        'premium', 'specialty', 'gourmet',
+    issues.extend(_check_invented_products(checklist, vendor))
+    issues.extend(_check_assumed_services(checklist, vendor, declared))
+    issues.extend(_check_customer_behavior_claims(checklist))
+    issues.extend(_check_outcome_guarantees(checklist))
+    issues.extend(_check_assumed_tools(checklist, declared))
+    return len(issues) == 0, issues
+
+
+def _check_invented_products(checklist: str, vendor: dict) -> List[str]:
+    """Targeted checks for common product terms; not general entity recognition."""
+    products = str(vendor.get("products", "") or "")
+    candidates = [
+        "avocado", "fig", "dragonfruit", "kiwi", "pomegranate",
+        "quinoa", "chia", "exotic", "imported", "organic",
+        "premium", "specialty", "gourmet",
     ]
-    
-    for product in potential_products:
-        if product in checklist and product not in vendor.get("products", "").lower():
-            issues.append(
-                f"Mentions '{product}' which is not in the vendor's saved product list. "
-                f"Only reference products explicitly listed in the profile."
-            )
-    
-    return issues
+    return [
+        f"Mentions '{item}' which is not in the vendor's saved product list. "
+        "Only reference products explicitly listed in the profile."
+        for item in candidates
+        if _contains_phrase(checklist, item) and not _contains_phrase(products, item)
+    ]
 
 
-def _check_assumed_services(checklist: str, vendor: dict, declared_tools: list) -> List[str]:
-    """Check for assumptions about delivery, online ordering, website, etc."""
+def _match_contexts(text: str, pattern: str):
+    """Yield a match and only its local sentence/line context."""
+    for match in re.finditer(pattern, text, re.IGNORECASE):
+        starts = [
+            text.rfind("\n", 0, match.start()),
+            text.rfind(".", 0, match.start()),
+            text.rfind(";", 0, match.start()),
+        ]
+        start = max(starts) + 1
+        ends = [
+            p for p in (
+                text.find("\n", match.end()),
+                text.find(".", match.end()),
+                text.find(";", match.end()),
+            ) if p != -1
+        ]
+        end = min(ends) if ends else len(text)
+        yield match, text[start:end]
+
+
+def _is_conditional(text: str, pattern: str) -> bool:
+    """A condition must occur in the same sentence/line as the matched phrase."""
+    markers = (
+        r"\bif\b", r"\bconsider\b", r"\bcould\b", r"\bcan\b",
+        r"\bmay\b", r"\bmight\b", r"\bwhen\b", r"\bonce\b", r"\bin case\b",
+    )
+    return any(
+        re.search(marker, context, re.IGNORECASE)
+        for _, context in _match_contexts(text, pattern)
+        for marker in markers
+    )
+
+
+def _check_assumed_services(checklist: str, vendor: dict, declared_tools: set) -> List[str]:
     issues = []
-    
-    # Check for delivery assumptions
     delivery_patterns = [
-        (r'\bdelivery\s+(zone|area|time|schedule|service)', 'delivery zones/schedules'),
-        (r'\bestimated\s+arrival', 'estimated arrival times'),
-        (r'\bdelivery\s+radius', 'delivery radius'),
-        (r'\bfree\s+delivery', 'free delivery claims'),
-        (r'\bshipping\s+(option|method|cost)', 'shipping options'),
-        (r'\border\s+tracking', 'order tracking'),
+        (r"\bdelivery\s+(?:zone|area|time|schedule|service)s?\b", "delivery zones/schedules"),
+        (r"\bestimated\s+arrival\b", "estimated arrival times"),
+        (r"\bdelivery\s+radius\b", "delivery radius"),
+        (r"\bfree\s+delivery\b", "free delivery claims"),
+        (r"\bshipping\s+(?:option|method|cost)s?\b", "shipping options"),
+        (r"\border\s+tracking\b", "order tracking"),
+        (r"\btrack\s+(?:your|customer|the)?\s*orders?\b", "order tracking"),
+        (r"\bdispatch\s+(?:status|updates?)\b", "dispatch updates"),
     ]
-    
     for pattern, description in delivery_patterns:
-        if re.search(pattern, checklist):
+        if re.search(pattern, checklist, re.IGNORECASE):
             issues.append(
                 f"Assumes delivery service exists ({description}). "
-                f"Do not recommend delivery-specific features without confirming the vendor offers delivery."
+                "Confirm delivery is offered before recommending delivery-specific features."
             )
-    
-    # Check for online ordering assumptions
+
     ordering_patterns = [
-        (r'\bonline\s+ordering\s+(system|platform|portal)', 'online ordering system'),
-        (r'\baccept\s+(online|direct)\s+orders', 'accepting online orders'),
-        (r'\border\s+management\s+(system|software)', 'order management system'),
-        (r'\bcustomer\s+order\s+portal', 'customer order portal'),
+        (r"\bonline\s+ordering\s+(?:system|platform|portal)\b", "online ordering system"),
+        (r"\baccept\s+(?:online|direct)\s+orders?\b", "accepting online orders"),
+        (r"\border\s+management\s+(?:system|software)\b", "order management system"),
+        (r"\bcustomer\s+order\s+portal\b", "customer order portal"),
     ]
-    
     for pattern, description in ordering_patterns:
-        if re.search(pattern, checklist):
-            # Only flag if not a conditional recommendation
-            if not _is_conditional(checklist, pattern):
-                issues.append(
-                    f"Assumes online ordering capability exists ({description}). "
-                    f"Use conditional phrasing: 'If you plan to accept online orders...'"
-                )
-    
-    # Check for website assumptions
+        if re.search(pattern, checklist, re.IGNORECASE) and not _is_conditional(checklist, pattern):
+            issues.append(
+                f"Assumes online ordering capability exists ({description}). "
+                "Use conditional phrasing, such as 'If you plan to accept online orders...'."
+            )
+
     website_patterns = [
-        (r'\bupdate\s+(your|the)\s+website', 'website updates'),
-        (r'\bwebsite\s+(content|design|layout)', 'website content'),
-        (r'\badd\s+.{0,20}\s+to\s+(your|the)\s+website', 'adding to website'),
+        (r"\bupdate\s+(?:your|the)\s+website\b", "website updates"),
+        (r"\bwebsite\s+(?:content|design|layout)\b", "website content"),
+        (r"\badd\s+.{0,40}\s+to\s+(?:your|the)\s+website\b", "adding to website"),
+        (r"\b(?:your|the)\s+website\b", "website use"),
     ]
-    
     for pattern, description in website_patterns:
-        if re.search(pattern, checklist):
+        if re.search(pattern, checklist, re.IGNORECASE) and not _is_conditional(checklist, pattern):
             issues.append(
                 f"Assumes website exists ({description}). "
-                f"Use conditional phrasing: 'If you have a website...'"
+                "Use conditional phrasing, such as 'If you have a website...'."
             )
-    
-    # Check for payment gateway assumptions
+
     payment_patterns = [
-        (r'\bintegrate\s+.{0,15}payment\s+gateway', 'payment gateway integration'),
-        (r'\bpayment\s+gateway\s+(integration|setup)', 'payment gateway setup'),
-        (r'\bonline\s+payment\s+processing', 'online payment processing'),
-        (r'\bmerchant\s+account\s+with\s+payment', 'merchant account setup'),
+        (r"\bintegrate\s+.{0,30}\bpayment\s+gateway\b", "payment gateway integration"),
+        (r"\bpayment\s+gateway\s+(?:integration|setup)\b", "payment gateway setup"),
+        (r"\bonline\s+payment\s+processing\b", "online payment processing"),
+        (r"\bmerchant\s+account\s+with\s+(?:a\s+)?payment\b", "merchant account setup"),
     ]
-    
     for pattern, description in payment_patterns:
-        if re.search(pattern, checklist):
+        if re.search(pattern, checklist, re.IGNORECASE):
             issues.append(
                 f"Assumes need for payment gateway ({description}). "
-                f"This is unsuitable for a small street vendor without verifying their setup. "
-                f"Prefer simpler options like UPI QR codes."
+                "Verify the vendor's setup first; a simpler payment option may be more appropriate."
             )
-    
-    # Check for inventory software assumptions
-    if re.search(r'\binventory\s+(management\s+)?(software|system|app)', checklist):
+
+    if re.search(r"\binventory\s+(?:management\s+)?(?:software|system|app)\b",
+                 checklist, re.IGNORECASE):
         issues.append(
             "Recommends inventory software without establishing the vendor's scale or need. "
-            "For small vendors, suggest simpler methods like maintaining a digital product list."
+            "Consider a simple digital product list first."
         )
-    
     return issues
 
 
 def _check_customer_behavior_claims(checklist: str) -> List[str]:
-    """Check for unsupported claims about customer preferences or behaviors."""
-    issues = []
-    
-    behavior_patterns = [
-        (r'\b(most|many|majority of)\s+(customers|buyers|people|users)\s+(prefer|expect|want|choose)', 
-         'customer preference claims'),
-        (r'\bcustomers?\s+(are\s+looking|look|search)\s+for', 'customer search behavior'),
-        (r'\b(nowadays|today),?\s+(most|many|customers?|buyers?|people)\s+', 'generalized behavior claims'),
-        (r'\burban\s+buyers?\s+(prefer|opt|choose)', 'urban buyer behavior'),
-        (r'\bcustomers?\s+(demand|expect)\s+', 'customer demand claims'),
-        (r'\bgrowing\s+(trend|demand)\s+(for|in|of)', 'trend claims without evidence'),
+    patterns = [
+        r"\b(?:most|many|majority of)\s+(?:the\s+)?(?:customers|buyers|people|users)\s+(?:prefer|expect|want|choose)\b",
+        r"\bcustomers?\s+(?:are\s+looking|look|search)\s+for\b",
+        r"\b(?:nowadays|today),?\s+(?:most|many|customers?|buyers?|people)\s+",
+        r"\burban\s+buyers?\s+(?:prefer|opt|choose)\b",
+        r"\bcustomers?\s+(?:demand|expect)\s+",
+        r"\bgrowing\s+(?:trend|demand)\s+(?:for|in|of)\b",
+        r"\bpeople\s+(?:increasingly|generally)\s+(?:prefer|choose|expect)\b",
     ]
-    
-    for pattern, description in behavior_patterns:
-        if re.search(pattern, checklist):
-            issues.append(
-                f"Makes unsupported customer behavior claim ({description}). "
-                f"Do not assume customer preferences, expectations, or behaviors without evidence."
-            )
-    
-    return issues
+    if any(re.search(p, checklist, re.IGNORECASE) for p in patterns):
+        return ["Makes an unsupported customer behavior or trend claim. "
+                "Do not assume customer preferences or behavior without evidence."]
+    return []
 
 
 def _check_outcome_guarantees(checklist: str) -> List[str]:
-    """Check for guaranteed outcomes about sales, revenue, customers."""
-    issues = []
-    
-    # Strong outcome guarantees
-    guarantee_patterns = [
-        (r'\bthis\s+will\s+increase\s+(sales|revenue|income|earnings|profit)', 'guaranteed sales increase'),
-        (r'\bwill\s+increase\s+(your\s+)?(sales|revenue|income|earnings|profit)', 'guaranteed sales increase'),
-        (r'\bwill\s+(attract|bring|get)\s+(more|new)\s+customers', 'guaranteed customer acquisition'),
-        (r'\bguaranteed?\s+(to\s+)?(increase|improve|boost|generate)', 'explicit guarantee'),
-        (r'\bwill\s+(boost|improve|grow|expand)\s+(your\s+)?(business|sales|revenue)', 'guaranteed business growth'),
-        (r'\bgenerate\s+(more\s+)?(leads?|sales|revenue)', 'guaranteed lead generation'),
-        (r'\bwill\s+result\s+in\s+(more|increased|higher)\s+(sales|revenue|customers)', 'guaranteed results'),
+    patterns = [
+        r"\bthis\s+will\s+increase\s+(?:sales|revenue|income|earnings|profit)\b",
+        r"\bwill\s+increase\s+(?:your\s+)?(?:sales|revenue|income|earnings|profit)\b",
+        r"\bwill\s+(?:attract|bring|get)\s+(?:more|new)\s+customers\b",
+        r"\bguaranteed?\s+(?:to\s+)?(?:increase|improve|boost|generate)\b",
+        r"\bwill\s+(?:boost|improve|grow|expand)\s+(?:your\s+)?(?:business|sales|revenue)\b",
+        r"\bgenerate\s+(?:more\s+)?(?:leads?|sales|revenue)\b",
+        r"\bwill\s+result\s+in\s+(?:more|increased|higher)\s+(?:sales|revenue|customers)\b",
     ]
-    
-    for pattern, description in guarantee_patterns:
-        if re.search(pattern, checklist):
+    if any(re.search(p, checklist, re.IGNORECASE) for p in patterns):
+        return ["Makes an unsupported outcome guarantee. "
+                "Use possibility language rather than promising results."]
+    return []
+
+
+def _check_assumed_tools(checklist: str, declared_tools: set) -> List[str]:
+    checks = [
+        ({"whatsapp business", "whatsapp"}, r"\bon\s+whatsapp\s+business\b", "WhatsApp Business"),
+        ({"google business profile", "google business"},
+         r"\bupdate\s+(?:your|the)\s+google\s+business\s+profile\b", "Google Business Profile"),
+        ({"social media", "facebook", "instagram"},
+         r"\bpost\s+on\s+(?:your\s+)?(?:social\s+media|facebook|instagram)\b", "social media account"),
+    ]
+    issues = []
+    for accepted, pattern, name in checks:
+        if (re.search(pattern, checklist, re.IGNORECASE)
+                and not (accepted & declared_tools)
+                and not _is_conditional(checklist, pattern)):
             issues.append(
-                f"Makes unsupported outcome guarantee ({description}). "
-                f"Use possibility language: 'could help attract customers' not 'will increase sales'."
+                f"Assumes {name} is already active without confirmation. "
+                f"Use conditional phrasing, such as 'If you don't already have {name}...'."
             )
-    
     return issues
 
 
-def _check_assumed_tools(checklist: str, declared_tools: list) -> List[str]:
-    """Check for assumptions about tools/platforms vendor already uses."""
+def validate_checklist_quality(checklist: str, max_words_per_step: int = 55) -> Tuple[bool, List[str]]:
+    """Require 5–7 concise steps with sequential numbering and limited repetition."""
+    if not isinstance(checklist, str) or not checklist.strip():
+        return False, ["Checklist is empty."]
+    if not isinstance(max_words_per_step, int) or max_words_per_step < 1:
+        return False, ["max_words_per_step must be a positive integer."]
+
+    matches = list(re.finditer(r"^\s*(\d+)[.)]\s+(.+?)\s*$", checklist, re.MULTILINE))
+    steps = [(int(m.group(1)), m.group(2).strip()) for m in matches]
+    if not 5 <= len(steps) <= 7:
+        return False, [f"Expected 5–7 steps, but received {len(steps)}."]
+
     issues = []
-    
-    # Tools that should not be assumed unless declared
-    tool_checks = [
-        ('whatsapp business', r'\bon\s+whatsapp\s+business', 'WhatsApp Business'),
-        ('google business profile', r'\bupdate\s+(your|the)\s+google\s+business\s+profile', 'Google Business Profile'),
-        ('social media', r'\bpost\s+on\s+(your\s+)?(social\s+media|facebook|instagram)', 'social media account'),
-    ]
-    
-    for tool_key, pattern, tool_name in tool_checks:
-        if re.search(pattern, checklist):
-            if tool_key not in declared_tools:
-                # Check if it's phrased conditionally
-                if not _is_conditional(checklist, pattern):
-                    issues.append(
-                        f"Assumes {tool_name} is already active without confirmation. "
-                        f"Use conditional phrasing: 'If you don't already have {tool_name}...'"
-                    )
-    
-    return issues
+    numbers = [n for n, _ in steps]
+    if numbers != list(range(1, len(steps) + 1)):
+        issues.append(f"Steps must be numbered sequentially from 1 to {len(steps)}.")
 
-
-def _is_conditional(text: str, pattern: str) -> bool:
-    """Check if a pattern appears in a conditional context."""
-    # Find the match
-    match = re.search(pattern, text, re.IGNORECASE)
-    if not match:
-        return False
-    
-    # Get surrounding context (up to 100 chars before)
-    start = max(0, match.start() - 100)
-    context = text[start:match.end()]
-    
-    # Check for conditional phrases
-    conditional_markers = [
-        r'\bif\s+you\b',
-        r'\bif\s+you\s+(don\'?t|do\s+not)\b',
-        r'\bconsider\b',
-        r'\byou\s+(could|can|may|might)\b',
-        r'\bwhen\s+you\b',
-        r'\bonce\s+you\b',
-    ]
-    
-    for marker in conditional_markers:
-        if re.search(marker, context, re.IGNORECASE):
-            return True
-    
-    return False
-
-
-if __name__ == "__main__":
-    # Quick self-test
-    vendor = {
-        "business_name": "Fresh Fruits",
-        "vendor_type": "Fruits & Vegetables",
-        "location": "Porur, Chennai",
-        "products": "apple, mango, banana, carrot, potato",
-    }
-    
-    # Test case 1: Invented product
-    bad_checklist_1 = """
-    1. Take clear photos of your apples, mangoes, avocados and figs
-    2. Set up a Google Business Profile
-    """
-    valid, issues = validate_checklist_output(bad_checklist_1, vendor)
-    print(f"Test 1 (invented products): valid={valid}, issues={len(issues)}")
-    for issue in issues:
-        print(f"  - {issue}")
-    
-    # Test case 2: Assumed delivery
-    bad_checklist_2 = """
-    1. Define your delivery zones and estimated arrival times
-    2. Set up order tracking for customers
-    """
-    valid, issues = validate_checklist_output(bad_checklist_2, vendor)
-    print(f"\nTest 2 (assumed delivery): valid={valid}, issues={len(issues)}")
-    for issue in issues:
-        print(f"  - {issue}")
-    
-    # Test case 3: Customer behavior
-    bad_checklist_3 = """
-    1. Most customers prefer cashless payments nowadays
-    2. Urban buyers opt for online ordering
-    """
-    valid, issues = validate_checklist_output(bad_checklist_3, vendor)
-    print(f"\nTest 3 (customer behavior): valid={valid}, issues={len(issues)}")
-    for issue in issues:
-        print(f"  - {issue}")
-    
-    # Test case 4: Good checklist
-    good_checklist = """
-    1. If you don't already have a UPI QR code, consider setting one up through your bank's app
-    2. Take clear photos of your products (apples, mangoes, bananas, carrots, potatoes)
-    3. Consider creating a simple digital price list that you could share with customers
-    """
-    valid, issues = validate_checklist_output(good_checklist, vendor)
-    print(f"\nTest 4 (good checklist): valid={valid}, issues={len(issues)}")
+    for index, (_, step) in enumerate(steps, 1):
+        words = re.findall(r"\b[\w'-]+\b", step, re.UNICODE)
+        if len(words) < 6:
+            issues.append(f"Step {index} is too short to provide a useful instruction.")
+            continue
+        if len(words) > max_words_per_step:
+            issues.append(
+                f"Step {index} contains {len(words)} words. "
+                f"Keep each step at or below {max_words_per_step} words."
+            )
+        normalized = [w.lower() for w in words]
+        if len(normalized) >= 15:
+            counts = {}
+            for word in normalized:
+                if len(word) > 3:
+                    counts[word] = counts.get(word, 0) + 1
+            if counts and max(counts.values()) > 6:
+                issues.append(f"Step {index} contains excessive word repetition.")
+        if len(normalized) >= 12:
+            phrases = [tuple(normalized[i:i + 4]) for i in range(len(normalized) - 3)]
+            if len(phrases) != len(set(phrases)):
+                issues.append(f"Step {index} contains repeated phrases.")
+    return len(issues) == 0, issues

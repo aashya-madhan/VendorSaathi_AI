@@ -22,7 +22,10 @@ from prompts import (
 from business_profile_validation import validate_business_profile_output
 from local_seo_validation import validate_local_seo_output
 from scheme_answer_validation import validate_scheme_answer
-from checklist_validation import validate_checklist_output
+from checklist_validation import (
+    validate_checklist_output,
+    validate_checklist_quality,
+)
 
 st.set_page_config(
     page_title="VendorSaathi AI | Street Vendor Growth Copilot",
@@ -76,6 +79,32 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .brandmark  { width:39px; height:39px; flex:0 0 39px; border-radius:12px; background:linear-gradient(145deg,#8df34f,#16a45b); display:grid; place-items:center; color:#07110b !important; font-size:21px; font-weight:900; box-shadow:0 0 22px rgba(53,211,107,.18); }
 .brandname  { font-family:Manrope,sans-serif; font-size:18px; font-weight:800; letter-spacing:-.5px; color:#f4fbf4; }
 .brandtag   { font-size:8px; letter-spacing:1.35px; font-weight:800; color:#829989 !important; margin-top:1px; }
+/* Public landing header: keep the project name below Streamlit's fixed toolbar. */
+.public-brand {
+  display:flex; align-items:center; gap:11px; min-height:58px;
+  margin:2.2rem 0 1rem; padding:8px 0 12px;
+  overflow:visible !important; box-sizing:border-box;
+}
+.public-brand-mark {
+  width:40px; height:40px; flex:0 0 40px; display:grid; place-items:center;
+  border-radius:12px; background:linear-gradient(140deg,#a4f35b,#1aa45a);
+  color:#07110b !important; font-size:21px; font-weight:900;
+}
+.public-brand-copy {
+  min-width:0; display:flex; flex-direction:column; justify-content:center;
+  overflow:visible !important;
+}
+.public-brand-name {
+  display:block; margin:0; padding:0; color:#f4fbf4 !important;
+  font-family:Manrope,sans-serif; font-size:19px; font-weight:800;
+  line-height:1.4 !important; letter-spacing:-.35px; white-space:nowrap;
+}
+.public-brand-name span { color:#a9df72 !important; }
+.public-brand-tag {
+  display:block; margin-top:2px; color:#a5b9aa !important;
+  font-size:9px; font-weight:800; line-height:1.5 !important;
+  letter-spacing:1.15px;
+}
 .eyebrow    { font-size:9px; letter-spacing:1.55px; text-transform:uppercase; color:var(--green) !important; font-weight:800; }
 .page-title { font-family:Manrope,sans-serif; font-size:27px; font-weight:800; letter-spacing:-.9px; line-height:1.2; margin:1px 0 4px; color:var(--text) !important; }
 .subtle     { font-size:13px; color:var(--muted) !important; line-height:1.5; }
@@ -1193,17 +1222,15 @@ if "authenticated" not in st.session_state:
 
 def show_public_nav():
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0 18px;">
-      <div style="width:36px;height:36px;border-radius:11px;background:linear-gradient(140deg,#a4f35b,#1aa45a);
-                  color:#07110b;display:grid;place-items:center;font-size:20px;font-weight:900;flex:0 0 36px;">✦</div>
-      <div>
-        <div style="font-family:Manrope,sans-serif;font-size:18px;font-weight:800;color:#f4fbf4;">
-          VendorSaathi <span style="color:#a9df72;">AI</span>
-        </div>
-        <div style="font-size:9px;letter-spacing:1.2px;color:#829989;font-weight:700;">YOUR DIGITAL BUSINESS PARTNER</div>
+    <div class="public-brand">
+      <div class="public-brand-mark" aria-hidden="true">✦</div>
+      <div class="public-brand-copy">
+        <span class="public-brand-name">VendorSaathi <span>AI</span></span>
+        <span class="public-brand-tag">YOUR DIGITAL BUSINESS PARTNER</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
+
 
 def render_home():
     show_public_nav()
@@ -1858,7 +1885,7 @@ elif page == "Promo Studio":
             _promo_saved_key = f"_promo_saved_{hash(_promo_content)}"
             _already_saved = st.session_state.get(_promo_saved_key, False)
             if _already_saved:
-                st.success("Saved!", icon="★")
+                st.success("Promotion saved successfully!")
             elif st.button("★ Save to library", key="save_promo", use_container_width=True):
                 if _promo_content.strip():
                     _promo_email = st.session_state["account"]["email"]
@@ -2072,54 +2099,135 @@ elif page == "Digitalization Checklist":
             "about services/tools you haven't confirmed. Click 'Generate my checklist' again for a new attempt."
         )
     
+    
     if checklist_submitted:
         if guard_vendor():
-            # Extract declared tools from multiselect
             declared_tools = current_tools if current_tools else []
-            
-            # Build context including what tools they already have
-            context = "Vendor priority: " + priority + ".\nTools already used: " + (", ".join(current_tools) if current_tools else "Not specified") + ".\nAdditional context: " + (extra_context.strip() or "Not provided")
-            
-            # Clear previous results
+
+            context = (
+                "Vendor priority: " + priority + ".\n"
+                "Tools already used: "
+                + (", ".join(current_tools) if current_tools else "Not specified")
+                + ".\nAdditional context: "
+                + (extra_context.strip() or "Not provided")
+            )
+
+            # Clear previous results before generating again.
             st.session_state.pop("checklist_result", None)
             st.session_state.pop("checklist_validation_issues", None)
-            
-            result = run_generation(build_checklist_prompt(vendor, context=context))
-            if result:
-                # First validate format (5-7 steps, complete)
+            st.session_state.pop("checklist_completed", None)
+
+            prompt = build_checklist_prompt(vendor, context=context)
+            final_issues = []
+
+            # Initial generation + maximum two correction attempts.
+            for attempt in range(3):
+                result = run_generation(prompt)
+
+                if not result:
+                    final_issues = [
+                        "IBM Granite did not return a usable response. "
+                        "Please try again."
+                    ]
+                    break
+
                 format_valid, format_reason = validate_checklist(result)
+
+                attempt_issues = []
+
                 if not format_valid:
-                    st.warning(format_reason)
+                    attempt_issues.append(format_reason)
+
                 else:
-                    # Then validate content (factual grounding)
-                    content_valid, content_issues = validate_checklist_output(result, vendor, declared_tools)
-                    if content_valid:
-                        st.session_state["checklist_result"] = result
-                        st.session_state["checklist_priority"] = priority
-                        st.session_state["checklist_completed"] = [False] * len(parse_checklist_steps(result))
-                    else:
-                        st.session_state["checklist_validation_issues"] = content_issues
+                    content_valid, content_issues = (
+                        validate_checklist_output(
+                            result,
+                            vendor,
+                            declared_tools,
+                        )
+                    )
+
+                    quality_valid, quality_issues = (
+                        validate_checklist_quality(result)
+                    )
+
+                    if not content_valid:
+                        attempt_issues.extend(content_issues)
+
+                    if not quality_valid:
+                        attempt_issues.extend(quality_issues)
+
+                # Accept only if every validation layer passes.
+                if not attempt_issues:
+                    st.session_state["checklist_result"] = result
+                    st.session_state["checklist_priority"] = priority
+                    st.session_state["checklist_completed"] = [
+                        False
+                    ] * len(parse_checklist_steps(result))
+
+                    final_issues = []
+                    break
+
+                final_issues = attempt_issues
+
+                # Ask Granite to correct the rejected output.
+                if attempt < 2:
+                    prompt = (
+                        build_checklist_prompt(vendor, context=context)
+                        + "\n\nIMPORTANT CORRECTION REQUIRED:\n"
+                        + "\n".join(
+                            "- " + issue for issue in attempt_issues
+                        )
+                        + "\n\nRegenerate the entire checklist. "
+                        "Write exactly 5–7 concise, meaningful, "
+                        "business-specific and actionable steps. "
+                        "Keep each step below 55 words. "
+                        "Do not use filler, repeated phrases, "
+                        "unrelated terminology or incomplete sentences. "
+                        "Follow all original factual and safety instructions."
+                    )
+
+        # Never display rejected AI output as a successful checklist.
+        if final_issues:
+            st.session_state["checklist_validation_issues"] = (
+                final_issues
+            )
+ 
     if st.session_state.get("checklist_result"):
         st.markdown('<div class="card-heading"><span>Your personalized action plan</span><span class="card-chip">5–7 STEPS</span></div>', unsafe_allow_html=True)
         st.caption("Priority: " + st.session_state.get("checklist_priority", "Your business"))
         checklist_steps = parse_checklist_steps(st.session_state["checklist_result"])
         if "checklist_completed" not in st.session_state or len(st.session_state["checklist_completed"]) != len(checklist_steps):
             st.session_state["checklist_completed"] = [False] * len(checklist_steps)
+        
         with st.container(border=True):
-            completed_count = sum(st.session_state["checklist_completed"])
             total_count = len(checklist_steps)
-            st.progress(completed_count / total_count if total_count else 0)
-            st.caption(f"{completed_count} of {total_count} steps completed")
+
+            # Render each checkbox using its saved completion state.
             for step_index, step_text in enumerate(checklist_steps):
                 checked = st.checkbox(
                     step_text,
                     value=st.session_state["checklist_completed"][step_index],
                     key=f"checklist_step_{step_index}",
                 )
+
                 st.session_state["checklist_completed"][step_index] = checked
-            completed_count = sum(st.session_state["checklist_completed"])
-            st.progress(completed_count / total_count if total_count else 0)
-            st.caption(f"Progress: {completed_count}/{total_count} completed")
+
+            # Calculate progress only after all checkbox values are updated.
+            completed_count = sum(
+                st.session_state["checklist_completed"]
+            ) 
+
+            progress = (
+                completed_count / total_count
+                if total_count else 0
+            )
+
+            st.progress(progress)
+            st.caption(
+                f"Progress: {completed_count}/{total_count} steps completed"
+            )
+
         st.download_button(
             "Download checklist", st.session_state["checklist_result"],
             "digitalization_checklist.txt", key="download_checklist"

@@ -16,6 +16,9 @@ from typing import Optional, Tuple
 from dotenv import load_dotenv
 
 load_dotenv()  # loads .env when running locally; safe no-op if absent
+print("API KEY loaded:", bool(os.getenv("WATSONX_API_KEY")))
+print("PROJECT ID loaded:", bool(os.getenv("WATSONX_PROJECT_ID")))
+print("WATSONX URL loaded:", bool(os.getenv("WATSONX_URL")))
 
 # ---------------------------------------------------------------------------
 # Configuration
